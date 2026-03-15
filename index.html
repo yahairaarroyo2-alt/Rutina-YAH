@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Rutina 🌸</title>
+  <style>
+    :root {
+      --pink: #e91e8c;
+      --pink2: #ff6b9d;
+      --pink-light: #fce4ec;
+      --green: #43a047;
+      --blue: #1565c0;
+      --blue-light: #e3f2fd;
+      --purple: #6a1b9a;
+      --purple-light: #f3e5f5;
+      --text: #1a1a2e;
+      --muted: #8892a4;
+      --bg: #f5f0f8;
+      --card: #fff;
+      --border: #ede8f0;
+      --sh: 0 2px 14px rgba(233,30,140,.09);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ─── HEADER ─── */
+    .header {
+      background: linear-gradient(135deg, var(--pink), var(--pink2));
+      padding: 14px 16px 0;
+      position: sticky; top: 0; z-index: 200;
+      box-shadow: 0 4px 20px rgba(233,30,140,.3);
+    }
+    .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .hd-text h1 { font-size: 17px; font-weight: 800; color: #fff; }
+    .hd-text p  { font-size: 11px; color: rgba(255,255,255,.8); margin-top: 2px; }
+
+    /* Ring */
+    .ring-wrap { position: relative; width: 58px; height: 58px; }
+    .ring-svg  { transform: rotate(-90deg); }
+    .ring-bg   { fill: none; stroke: rgba(255,255,255,.25); stroke-width: 5; }
+    .ring-fill { fill: none; stroke: #fff; stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset .5s ease; }
+    .ring-txt  { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; }
+    .ring-n    { font-size: 13px; font-weight: 800; line-height: 1; }
+    .ring-l    { font-size: 9px; opacity: .85; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 12px; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      flex-shrink: 0; display: flex; flex-direction: column; align-items: center;
+      padding: 6px 16px; border-radius: 20px; border: none; cursor: pointer;
+      background: rgba(255,255,255,.2); color: rgba(255,255,255,.85);
+      font-size: 12px; font-weight: 600; transition: all .2s; line-height: 1.4;
+    }
+    .tab .em { font-size: 15px; line-height: 1; margin-bottom: 1px; }
+    .tab.active { background: #fff; color: var(--pink); }
+    .tab .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); margin: 3px auto 0; display: none; }
+    .tab.has-dot .dot { display: block; }
+
+    /* ─── CONTENT ─── */
+    .content { padding: 14px; max-width: 600px; margin: 0 auto; }
+
+    .day-intro { background: var(--card); border-radius: 20px; padding: 16px; margin-bottom: 14px; box-shadow: var(--sh); }
+    .day-title { font-size: 21px; font-weight: 800; color: var(--pink); }
+    .day-focus { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .day-warn  { margin-top: 10px; padding: 9px 12px; background: #fff8e1; border-radius: 10px; border-left: 4px solid #ffc107; font-size: 12px; color: #5d4037; line-height: 1.5; }
+    .day-metab { margin-top: 10px; padding: 8px 12px; background: linear-gradient(135deg,#fff8e1,#fce4ec); border-radius: 10px; font-size: 12px; color: var(--pink); font-weight: 600; }
+
+    .sec-lbl { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); margin: 18px 0 8px 2px; display: flex; align-items: center; gap: 8px; }
+    .sec-lbl::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* ─── EXERCISE CARD ─── */
+    .ex-card { background: var(--card); border-radius: 18px; padding: 14px; margin-bottom: 10px; box-shadow: var(--sh); border: 2px solid transparent; transition: opacity .35s, border-color .35s; }
+    .ex-card.done { opacity: .42; border-color: var(--green); }
+    .ex-card.done .ex-name { text-decoration: line-through; color: var(--muted); }
+
+    .ex-top   { display: flex; align-items: flex-start; gap: 10px; }
+    .ex-check {
+      width: 30px; height: 30px; min-width: 30px; border-radius: 50%;
+      border: 2.5px solid #ddd; background: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; color: transparent; user-select: none;
+      transition: all .25s cubic-bezier(.34,1.56,.64,1);
+    }
+    .ex-check.checked { background: var(--green); border-color: var(--green); color: #fff; transform: scale(1.1); }
+    .ex-info  { flex: 1; min-width: 0; }
+    .ex-name  { font-size: 15px; font-weight: 700; line-height: 1.3; }
+    .ex-note  { font-size: 11px; color: var(--pink); font-weight: 600; margin-top: 3px; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .chip  { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+    .cp { background: var(--pink-light);   color: var(--pink); }
+    .cb { background: var(--blue-light);   color: var(--blue); }
+    .cv { background: var(--purple-light); color: var(--purple); }
+
+    .ex-acts { display: flex; gap: 8px; margin-top: 12px; }
+    .ex-btn  { flex: 1; padding: 9px 8px; border-radius: 12px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; transition: transform .15s; }
+    .ex-btn:active { transform: scale(.96); }
+    .btn-view { background: var(--pink-light); color: var(--pink); }
+    .btn-rest { background: var(--blue-light);  color: var(--blue); }
+
+    /* Cardio */
+    .cardio { background: linear-gradient(135deg,#fffde7,#fff9c4); border-radius: 14px; padding: 13px 15px; margin: 14px 0 6px; display: flex; gap: 10px; align-items: flex-start; border-left: 4px solid #ffd600; }
+    .cardio-icon { font-size: 20px; flex-shrink: 0; }
+    .cardio-txt  { font-size: 13px; color: #5d4037; line-height: 1.5; }
+    .cardio-txt strong { color: #e65100; font-size: 11px; display: block; margin-bottom: 2px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+
+    /* Reset */
+    .reset-wrap { padding: 8px 0 30px; }
+    .reset-btn  { width: 100%; padding: 13px; border-radius: 14px; border: 2px dashed var(--border); background: transparent; font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 7px; }
+    .reset-btn:hover { border-color: var(--pink); color: var(--pink); background: var(--pink-light); }
+
+    /* ─── MODALS ─── */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(4px); z-index: 500; display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .3s; }
+    .overlay.open { opacity: 1; pointer-events: all; }
+    .sheet { background: #fff; border-radius: 26px 26px 0 0; width: 100%; max-width: 600px; padding: 0 20px 34px; max-height: 90vh; overflow-y: auto; transform: translateY(100%); transition: transform .35s cubic-bezier(.32,.72,0,1); position: relative; }
+    .overlay.open .sheet { transform: translateY(0); }
+    .sheet-handle { width: 36px; height: 4px; background: #e0e0e0; border-radius: 2px; margin: 12px auto 16px; }
+    .sheet-close  { position: absolute; top: 14px; right: 16px; width: 32px; height: 32px; border-radius: 50%; border: none; background: #f5f5f5; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+    .sheet-title  { font-size: 19px; font-weight: 800; color: var(--text); margin-bottom: 3px; }
+    .sheet-sub    { font-size: 12px; color: var(--muted); }
+
+    /* GIF modal */
+    .gif-box { margin-top: 16px; border-radius: 16px; overflow: hidden; background: #f8f8f8; min-height: 200px; display: flex; align-items: center; justify-content: center; }
+    .gif-box img { width: 100%; display: block; }
+    .gif-load { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 30px; color: var(--muted); font-size: 13px; }
+    .spinner  { width: 32px; height: 32px; border: 3px solid #f0f0f0; border-top-color: var(--pink); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .gif-err  { text-align: center; padding: 28px; color: var(--muted); }
+    .gif-err .ei { font-size: 44px; margin-bottom: 10px; }
+    .gif-err p { font-size: 13px; line-height: 1.5; }
+    .yt-btn { display: inline-block; margin-top: 12px; padding: 9px 20px; background: var(--pink-light); color: var(--pink); border-radius: 20px; font-size: 13px; font-weight: 600; text-decoration: none; }
+
+    /* Timer modal */
+    .presets { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin: 14px 0; }
+    .pre-btn { padding: 10px 4px; border-radius: 14px; border: 2px solid var(--border); background: #fff; font-size: 13px; font-weight: 700; cursor: pointer; color: var(--text); transition: all .2s; text-align: center; }
+    .pre-btn.active { background: var(--pink-light); border-color: var(--pink); color: var(--pink); }
+
+    .t-circle { display: flex; justify-content: center; margin: 10px 0 18px; position: relative; }
+    .t-svg    { transform: rotate(-90deg); }
+    .t-track  { fill: none; stroke: #f0f0f0; stroke-width: 8; }
+    .t-arc    { fill: none; stroke: var(--pink); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset .6s linear; }
+    .t-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .t-num    { font-size: 54px; font-weight: 800; color: var(--pink); line-height: 1; font-variant-numeric: tabular-nums; }
+    .t-unit   { font-size: 13px; color: var(--muted); font-weight: 600; }
+    .t-btns   { display: flex; gap: 10px; }
+    .t-btn    { flex: 1; padding: 14px; border-radius: 16px; border: none; font-size: 15px; font-weight: 700; cursor: pointer; transition: transform .15s; }
+    .t-btn:active { transform: scale(.97); }
+    .t-main   { background: linear-gradient(135deg,var(--pink),var(--pink2)); color: #fff; flex: 2; }
+    .t-rst    { background: #f0f0f0; color: var(--muted); }
+
+    /* ─── CELEBRATION ─── */
+    .confetti-layer { position: fixed; inset: 0; z-index: 900; pointer-events: none; overflow: hidden; }
+    .cf { position: absolute; border-radius: 2px; animation: cfFall linear forwards; }
+    @keyframes cfFall { 0% { top: -30px; opacity: 1; transform: rotate(0deg) translateX(0); } 100% { top: 110vh; opacity: 0; transform: rotate(720deg) translateX(var(--dx)); } }
+
+    .celeb-ov { position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .4s; }
+    .celeb-ov.show { opacity: 1; pointer-events: all; }
+    .celeb-card { background: #fff; border-radius: 28px; padding: 36px 28px; text-align: center; max-width: 300px; margin: 16px; box-shadow: 0 8px 40px rgba(233,30,140,.25); transform: scale(.6); transition: transform .5s cubic-bezier(.34,1.56,.64,1); }
+    .celeb-ov.show .celeb-card { transform: scale(1); }
+    .celeb-em    { font-size: 56px; display: block; margin-bottom: 12px; animation: wobble 1.5s ease-in-out infinite; }
+    @keyframes wobble { 0%,100% { transform: rotate(-6deg) scale(1); } 50% { transform: rotate(6deg) scale(1.12); } }
+    .celeb-title { font-size: 24px; font-weight: 800; color: var(--pink); margin-bottom: 8px; }
+    .celeb-msg   { font-size: 14px; color: var(--muted); margin-bottom: 22px; line-height: 1.5; }
+    .celeb-close { background: linear-gradient(135deg,var(--pink),var(--pink2)); color: #fff; border: none; padding: 14px 32px; border-radius: 16px; font-size: 15px; font-weight: 700; cursor: pointer; width: 100%; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-row">
+    <div class="hd-text">
+      <h1>🌸 Mi Rutina</h1>
+      <p id="hdSub">Mujer · 5 días · Pérdida de grasa · Post-menisco</p>
+    </div>
+    <div class="ring-wrap">
+      <svg class="ring-svg" width="58" height="58" viewBox="0 0 58 58">
+        <circle class="ring-bg"   cx="29" cy="29" r="23"/>
+        <circle class="ring-fill" id="ringFill" cx="29" cy="29" r="23"
+          stroke-dasharray="144.51" stroke-dashoffset="144.51"/>
+      </svg>
+      <div class="ring-txt">
+        <span class="ring-n" id="ringNum">0/0</span>
+        <span class="ring-l">hecho</span>
+      </div>
+    </div>
+  </div>
+  <div class="tabs" id="tabs"></div>
+</header>
+
+<!-- CONTENT -->
+<main class="content" id="main"></main>
+
+<!-- GIF MODAL -->
+<div class="overlay" id="gifOv" onclick="if(event.target===this)closeGif()">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <button class="sheet-close" onclick="closeGif()">✕</button>
+    <p class="sheet-title" id="gifTitle"></p>
+    <p class="sheet-sub"   id="gifSub"></p>
+    <div class="gif-box"   id="gifBox"></div>
+  </div>
+</div>
+
+<!-- TIMER MODAL -->
+<div class="overlay" id="timerOv" onclick="if(event.target===this)closeTimer()">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <button class="sheet-close" onclick="closeTimer()">✕</button>
+    <p class="sheet-title">⏱ Descanso</p>
+    <p class="sheet-sub">Elige el tiempo y respira</p>
+    <div class="presets">
+      <button class="pre-btn active" data-s="30"  onclick="setPreset(30,this)">30s</button>
+      <button class="pre-btn"        data-s="60"  onclick="setPreset(60,this)">60s</button>
+      <button class="pre-btn"        data-s="90"  onclick="setPreset(90,this)">90s</button>
+      <button class="pre-btn"        data-s="120" onclick="setPreset(120,this)">2:00</button>
+    </div>
+    <div class="t-circle">
+      <svg class="t-svg" width="200" height="200" viewBox="0 0 200 200">
+        <circle class="t-track" cx="100" cy="100" r="88"/>
+        <circle class="t-arc"   id="tArc" cx="100" cy="100" r="88"
+          stroke-dasharray="552.92" stroke-dashoffset="0"/>
+      </svg>
+      <div class="t-center">
+        <span class="t-num"  id="tNum">30</span>
+        <span class="t-unit">segundos</span>
+      </div>
+    </div>
+    <div class="t-btns">
+      <button class="t-btn t-rst"  onclick="resetTimer()">↺</button>
+      <button class="t-btn t-main" id="tBtn" onclick="toggleTimer()">▶ Iniciar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CELEBRATION -->
+<div class="confetti-layer" id="confetti"></div>
+<div class="celeb-ov" id="celebOv" onclick="if(event.target===this)closeCeleb()">
+  <div class="celeb-card">
+    <span class="celeb-em">🏆</span>
+    <p class="celeb-title">¡Día completado!</p>
+    <p class="celeb-msg" id="celebMsg">¡Increíble trabajo!</p>
+    <button class="celeb-close" onclick="closeCeleb()">¡Gracias! 💪</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════════════════
+const DAYS = [
+  {
+    name:'Lunes', emoji:'🍑', focus:'Glúteos + Isquios',
+    cardio:'15-20 min de bici estática o elíptica al finalizar',
+    exercises:[
+      {name:'Hip thrust con barra',               sets:4,reps:'12-15',rest:60,note:'Glúteo mayor',          equip:'Barra + banco/step',     gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Hip-Thrust.gif'},
+      {name:'Peso muerto rumano con mancuernas',  sets:3,reps:'12',   rest:60,note:'Isquios desde cadera',  equip:'Mancuernas',             gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Romanian-Deadlift.gif'},
+      {name:'Curl femoral tumbado',               sets:4,reps:'12',   rest:60,note:'Isquios desde rodilla', equip:'Máquina',                gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Lying-Leg-Curl.gif'},
+      {name:'Abducción en máquina',               sets:4,reps:'20',   rest:45,note:'Glúteo medio',          equip:'Máquina de abducción',   gif:'https://fitnessprogramer.com/wp-content/uploads/2021/04/Hip-Abduction-Machine.gif'},
+      {name:'Frog pump',                          sets:3,reps:'20',   rest:45,note:'Glúteo medio/menor',    equip:'Sin equipo',             gif:'https://fitnessprogramer.com/wp-content/uploads/2021/07/Frog-Pump.gif'},
+      {name:'Elevación de cadera a una pierna',   sets:3,reps:'15 c/lado',rest:45,note:'Glúteo mayor unilateral',equip:'Sin equipo',       gif:'https://fitnessprogramer.com/wp-content/uploads/2021/07/Single-Leg-Glute-Bridge.gif'},
+      {name:'Plancha frontal',                    sets:3,reps:'40s',  rest:30,note:'',                      equip:'Sin equipo',             gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Plank.gif',     core:true},
+      {name:'Dead bug',                           sets:3,reps:'12',   rest:30,note:'',                      equip:'Sin equipo',             gif:'https://fitnessprogramer.com/wp-content/uploads/2021/07/Dead-Bug.gif',  core:true},
+    ]
+  },
+  {
+    name:'Martes', emoji:'💪', focus:'Espalda completa + Bíceps',
+    cardio:'15-20 min de bici estática o elíptica al finalizar',
+    exercises:[
+      {name:'Jalón al pecho agarre amplio',       sets:4,reps:'12',       rest:60,note:'Dorsal — plano vertical',    equip:'Polea alta',        gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Lat-Pulldown.gif'},
+      {name:'Jalón neutro agarre cerrado',        sets:3,reps:'12',       rest:60,note:'Dorsal + redondo mayor',     equip:'Polea alta',        gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Close-Grip-Lat-Pulldown.gif'},
+      {name:'Remo en polea sentada',              sets:3,reps:'12',       rest:60,note:'Trapecio medio / romboides', equip:'Polea baja',        gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Seated-Cable-Row.gif'},
+      {name:'Remo con mancuerna a una mano',      sets:3,reps:'12 c/lado',rest:60,note:'Trapecio + redondo',         equip:'Mancuerna + banco', gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Row.gif'},
+      {name:'Pullover en polea',                  sets:3,reps:'15',       rest:45,note:'Trapecio inferior + dorsal', equip:'Polea alta',        gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Cable-Pullover.gif'},
+      {name:'Curl bíceps alterno con mancuernas', sets:3,reps:'12 c/lado',rest:45,note:'',                          equip:'Mancuernas',        gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Alternate-Bicep-Curl.gif'},
+      {name:'Curl martillo',                      sets:3,reps:'12',       rest:45,note:'Braquial + bíceps',          equip:'Mancuernas',        gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Hammer-Curl.gif'},
+      {name:'Plancha lateral',                    sets:3,reps:'35s c/lado',rest:30,note:'',                         equip:'Sin equipo',        gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Side-Plank.gif',     core:true},
+      {name:'Crunch bicicleta',                   sets:3,reps:'20',       rest:30,note:'',                          equip:'Sin equipo',        gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Bicycle-Crunch.gif', core:true},
+    ]
+  },
+  {
+    name:'Miércoles', emoji:'🦵', focus:'Pierna adaptada (Cuádriceps + Isquios + Glúteo)',
+    warning:'⚠️ Rodilla protegida · Sin sentadilla profunda · No pasar 90° de flexión',
+    cardio:'15-20 min de bici estática o elíptica al finalizar',
+    exercises:[
+      {name:'Sentadilla Smith (rango parcial)',    sets:4,reps:'15',       rest:60,note:'Cuádriceps — no pasar 90°',  equip:'Máquina Smith',     gif:'https://fitnessprogramer.com/wp-content/uploads/2021/04/Smith-Machine-Squat.gif'},
+      {name:'Extensión cuádriceps (rango parcial)',sets:3,reps:'15',       rest:45,note:'Cuádriceps — peso ligero',   equip:'Máquina',           gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Leg-Extension.gif'},
+      {name:'Hip thrust unilateral',              sets:3,reps:'12 c/lado',rest:60,note:'Glúteo mayor',               equip:'Banco/step',        gif:'https://fitnessprogramer.com/wp-content/uploads/2021/07/Single-Leg-Hip-Thrust.gif'},
+      {name:'Curl femoral sentada',               sets:4,reps:'15',       rest:45,note:'Isquios desde rodilla',      equip:'Máquina',           gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Seated-Leg-Curl.gif'},
+      {name:'Curl femoral de pie en polea',       sets:3,reps:'12 c/lado',rest:45,note:'Isquios desde cadera',      equip:'Polea baja',        gif:'https://fitnessprogramer.com/wp-content/uploads/2021/04/Cable-Standing-Leg-Curl.gif'},
+      {name:'Abducción en máquina',               sets:3,reps:'20',       rest:45,note:'Glúteo medio',               equip:'Máquina abducción', gif:'https://fitnessprogramer.com/wp-content/uploads/2021/04/Hip-Abduction-Machine.gif'},
+      {name:'Gemelos en máquina',                 sets:3,reps:'20',       rest:30,note:'',                           equip:'Máquina',           gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Seated-Calf-Raise.gif'},
+      {name:'Bird dog',                           sets:3,reps:'12 c/lado',rest:30,note:'',                          equip:'Sin equipo',        gif:'https://fitnessprogramer.com/wp-content/uploads/2021/07/Bird-Dog.gif',         core:true},
+      {name:'Elevación de piernas tumbada',       sets:3,reps:'15',       rest:30,note:'',                           equip:'Sin equipo/banco',  gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Lying-Leg-Raise.gif',  core:true},
+    ]
+  },
+  {
+    name:'Jueves', emoji:'🏋️', focus:'Hombros (3 caras) + Pecho + Tríceps',
+    cardio:'15-20 min de bici estática o elíptica al finalizar',
+    exercises:[
+      {name:'Press militar con mancuernas',       sets:4,reps:'12',rest:60,note:'Deltoides anterior',             equip:'Mancuernas',        gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Shoulder-Press.gif'},
+      {name:'Elevaciones laterales',              sets:4,reps:'15',rest:45,note:'Deltoides medio',                equip:'Mancuernas',        gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lateral-Raise.gif'},
+      {name:'Pájaros con mancuernas',             sets:3,reps:'15',rest:45,note:'Deltoides posterior',            equip:'Mancuernas + banco',gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Bent-Over-Dumbbell-Rear-Delt-Row.gif'},
+      {name:'Face pulls en polea',                sets:3,reps:'15',rest:45,note:'Deltoides posterior + manguito', equip:'Polea alta',        gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Face-Pull.gif'},
+      {name:'Press banca con mancuernas',         sets:3,reps:'12',rest:60,note:'Pecho',                          equip:'Mancuernas + banco',gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Bench-Press.gif'},
+      {name:'Extensiones tríceps en polea alta',  sets:3,reps:'15',rest:45,note:'Tríceps — cabeza larga',         equip:'Polea alta',        gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Triceps-Pushdown.gif'},
+      {name:'Press francés con mancuerna',        sets:3,reps:'12',rest:45,note:'Tríceps — cabeza lateral',       equip:'Mancuerna + banco', gif:'https://fitnessprogramer.com/wp-content/uploads/2022/01/EZ-Bar-Lying-Triceps-Extension.gif'},
+      {name:'Rueda abdominal',                    sets:3,reps:'10',rest:45,note:'',                               equip:'Rueda abdominal',   gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Ab-Wheel-Rollout.gif',    core:true},
+      {name:'Crunch en polea',                    sets:3,reps:'15',rest:45,note:'',                               equip:'Polea alta',        gif:'https://fitnessprogramer.com/wp-content/uploads/2021/07/Cable-Crunch.gif',        core:true},
+    ]
+  },
+  {
+    name:'Viernes', emoji:'🔥', focus:'Full Body Metabólico', metabolic:true,
+    cardio:'15-20 min de bici estática o elíptica al finalizar',
+    exercises:[
+      {name:'Hip thrust con mancuerna',           sets:4,reps:'15',      rest:30, note:'Glúteo mayor', equip:'Mancuerna + banco/step', gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Hip-Thrust.gif'},
+      {name:'Curl femoral en polea de pie',       sets:4,reps:'12 c/lado',rest:30,note:'Isquios',      equip:'Polea baja',             gif:'https://fitnessprogramer.com/wp-content/uploads/2021/04/Cable-Standing-Leg-Curl.gif'},
+      {name:'Extensión cuádriceps (rango parcial)',sets:4,reps:'15',     rest:30, note:'Cuádriceps',   equip:'Máquina',                gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Leg-Extension.gif'},
+      {name:'Abducción en máquina',               sets:4,reps:'20',      rest:30, note:'Glúteo medio', equip:'Máquina abducción',      gif:'https://fitnessprogramer.com/wp-content/uploads/2021/04/Hip-Abduction-Machine.gif'},
+      {name:'Remo en polea',                      sets:4,reps:'15',      rest:30, note:'Espalda',      equip:'Polea baja',             gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Seated-Cable-Row.gif'},
+      {name:'Elevaciones laterales',              sets:4,reps:'15',      rest:30, note:'Hombro medio', equip:'Mancuernas',             gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Lateral-Raise.gif'},
+      {name:'Curl bíceps con mancuernas',         sets:4,reps:'12',      rest:30, note:'Bíceps',       equip:'Mancuernas',             gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Dumbbell-Alternate-Bicep-Curl.gif'},
+      {name:'Extensión tríceps en polea',         sets:4,reps:'12',      rest:30, note:'Tríceps',      equip:'Polea alta',             gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Triceps-Pushdown.gif'},
+      {name:'Plancha frontal',                    sets:4,reps:'40s',     rest:90, note:'Core · 90s entre rondas',equip:'Sin equipo',   gif:'https://fitnessprogramer.com/wp-content/uploads/2021/02/Plank.gif'},
+    ]
+  }
+];
+
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+let activeDay = 0;
+let doneMap   = {};   // { dayIdx: Set<exIdx> }
+
+// Timer
+let tDur = 30, tRem = 30, tRunning = false, tIv = null;
+const T_CIRC = 552.92;
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('fba_done_v2');
+    if (s) { const r = JSON.parse(s); for (const [k,v] of Object.entries(r)) doneMap[+k] = new Set(v); }
+  } catch(e){}
+}
+function saveState() {
+  const r = {}; for (const [k,v] of Object.entries(doneMap)) r[k] = [...v];
+  localStorage.setItem('fba_done_v2', JSON.stringify(r));
+}
+function getDone(d) { return doneMap[d] || new Set(); }
+
+// ══════════════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════════════
+function renderTabs() {
+  document.getElementById('tabs').innerHTML = DAYS.map((d,i) => `
+    <button class="tab ${i===activeDay?'active':''} ${getDone(i).size>0?'has-dot':''}"
+            onclick="switchDay(${i})">
+      <span class="em">${d.emoji}</span>
+      <span>${d.name}</span>
+      <span class="dot"></span>
+    </button>`).join('');
+}
+
+function updateRing(d) {
+  const total = DAYS[d].exercises.length;
+  const n     = getDone(d).size;
+  const off   = total ? 144.51*(1-n/total) : 144.51;
+  document.getElementById('ringFill').style.strokeDashoffset = off;
+  document.getElementById('ringNum').textContent = `${n}/${total}`;
+}
+
+function renderDay(d) {
+  const day     = DAYS[d];
+  const doneSet = getDone(d);
+  const main    = day.exercises.filter(e=>!e.core);
+  const core    = day.exercises.filter(e=> e.core);
+
+  let html = `<div class="day-intro">
+    <div class="day-title">${day.emoji} ${day.name} — ${day.focus}</div>
+    <div class="day-focus">${day.exercises.length} ejercicios · Post-menisco · Rodilla protegida</div>
+    ${day.warning  ? `<div class="day-warn">${day.warning}</div>` : ''}
+    ${day.metabolic? `<div class="day-metab">🔥 4 rondas · 30s entre ejercicios · 90s entre rondas</div>` : ''}
+  </div>`;
+
+  html += cards(main, day.exercises, doneSet, d);
+
+  if (core.length) {
+    html += `<div class="sec-lbl">Core</div>`;
+    html += cards(core, day.exercises, doneSet, d);
+  }
+
+  if (day.cardio) {
+    html += `<div class="cardio">
+      <span class="cardio-icon">🚴</span>
+      <div class="cardio-txt"><strong>Cardio low-impact</strong>${day.cardio}</div>
+    </div>`;
+  }
+
+  html += `<div class="reset-wrap">
+    <button class="reset-btn" onclick="resetDay(${d})">↺ &nbsp;Reiniciar día</button>
+  </div>`;
+
+  document.getElementById('main').innerHTML = html;
+}
+
+function cards(list, all, doneSet, d) {
+  return list.map(ex => {
+    const i      = all.indexOf(ex);
+    const isDone = doneSet.has(i);
+    return `<div class="ex-card ${isDone?'done':''}" id="c${d}_${i}">
+      <div class="ex-top">
+        <div class="ex-check ${isDone?'checked':''}" onclick="toggle(${d},${i})">${isDone?'✓':''}</div>
+        <div class="ex-info">
+          <div class="ex-name">${ex.name}</div>
+          ${ex.note?`<div class="ex-note">${ex.note}</div>`:''}
+        </div>
+      </div>
+      <div class="chips">
+        <span class="chip cp">📊 ${ex.sets} × ${ex.reps}</span>
+        <span class="chip cb">⏱ ${ex.rest}s descanso</span>
+        <span class="chip cv">🏋 ${ex.equip}</span>
+      </div>
+      <div class="ex-acts">
+        <button class="ex-btn btn-view" onclick="openGif(${d},${i})">🎬 Ver ejercicio</button>
+        <button class="ex-btn btn-rest" onclick="openTimer(${ex.rest})">⏱ Descanso</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggle(d, i) {
+  if (!doneMap[d]) doneMap[d] = new Set();
+  const s = doneMap[d];
+  const wasAll = s.size === DAYS[d].exercises.length;
+  if (s.has(i)) { s.delete(i); } else {
+    s.add(i);
+    openTimer(DAYS[d].exercises[i].rest);
+  }
+  saveState();
+  renderDay(d);
+  updateRing(d);
+  renderTabs();
+  if (!wasAll && s.size === DAYS[d].exercises.length) setTimeout(showCeleb, 400);
+}
+
+function switchDay(d) {
+  activeDay = d;
+  renderTabs();
+  renderDay(d);
+  updateRing(d);
+  document.getElementById('hdSub').textContent = DAYS[d].focus;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function resetDay(d) {
+  doneMap[d] = new Set();
+  saveState();
+  renderDay(d);
+  updateRing(d);
+  renderTabs();
+}
+
+// ══════════════════════════════════════════════════════
+//  GIF MODAL
+// ══════════════════════════════════════════════════════
+function openGif(d, i) {
+  const ex = DAYS[d].exercises[i];
+  document.getElementById('gifTitle').textContent = ex.name;
+  document.getElementById('gifSub').textContent   = `${ex.sets} series × ${ex.reps}  ·  ${ex.equip}`;
+  const box = document.getElementById('gifBox');
+  box.innerHTML = `<div class="gif-load"><div class="spinner"></div><span>Cargando…</span></div>`;
+
+  const img = new Image();
+  img.onload = () => { box.innerHTML=''; img.style.width='100%'; box.appendChild(img); };
+  img.onerror = () => {
+    const q = encodeURIComponent(ex.name + ' ejercicio cómo hacer');
+    box.innerHTML = `<div class="gif-err">
+      <div class="ei">🎥</div>
+      <p>Imagen no disponible.<br>Busca el movimiento aquí:</p>
+      <a class="yt-btn" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">🔍 Ver en YouTube</a>
+    </div>`;
+  };
+  img.src = ex.gif;
+  img.alt = ex.name;
+  document.getElementById('gifOv').classList.add('open');
+}
+function closeGif() {
+  document.getElementById('gifOv').classList.remove('open');
+  document.getElementById('gifBox').innerHTML = '';
+}
+
+// ══════════════════════════════════════════════════════
+//  TIMER
+// ══════════════════════════════════════════════════════
+function setPreset(s, btn) {
+  document.querySelectorAll('.pre-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  tDur = s; tRem = s;
+  if (tRunning) stopTimer();
+  updateTimerUI();
+  document.getElementById('tBtn').textContent = '▶ Iniciar';
+}
+
+function openTimer(def) {
+  if (tRunning) stopTimer();
+  const opts = [30,60,90,120];
+  const best = opts.reduce((p,c)=>Math.abs(c-def)<Math.abs(p-def)?c:p);
+  document.querySelectorAll('.pre-btn').forEach(b=>{
+    b.classList.toggle('active', +b.dataset.s === best);
+  });
+  tDur = best; tRem = best;
+  updateTimerUI();
+  document.getElementById('tBtn').textContent = '▶ Iniciar';
+  document.getElementById('timerOv').classList.add('open');
+  if ('Notification' in window && Notification.permission==='default') Notification.requestPermission();
+  setTimeout(startTimer, 350);
+}
+function closeTimer() { stopTimer(); document.getElementById('timerOv').classList.remove('open'); }
+
+function toggleTimer() { tRunning ? stopTimer() : startTimer(); }
+
+function startTimer() {
+  if (tRem <= 0) tRem = tDur;
+  tRunning = true;
+  document.getElementById('tBtn').textContent = '⏸ Pausar';
+  tIv = setInterval(()=>{ tRem--; updateTimerUI(); if(tRem<=0) finishTimer(); }, 1000);
+}
+function stopTimer() {
+  tRunning = false;
+  clearInterval(tIv); tIv = null;
+  document.getElementById('tBtn').textContent = '▶ Continuar';
+}
+function resetTimer() {
+  stopTimer(); tRem = tDur; updateTimerUI();
+  document.getElementById('tBtn').textContent = '▶ Iniciar';
+}
+function updateTimerUI() {
+  document.getElementById('tNum').textContent = tRem;
+  document.getElementById('tArc').style.strokeDashoffset = T_CIRC*(1-tRem/tDur);
+}
+function finishTimer() {
+  stopTimer(); tRem = 0; updateTimerUI();
+  document.getElementById('tBtn').textContent = '▶ Iniciar';
+  const n = document.getElementById('tNum');
+  n.style.color = '#43a047';
+  setTimeout(()=>n.style.color='', 2200);
+  playBeep();
+  sendNotif();
+}
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    [0,.3,.6].forEach(delay=>{
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value=880; o.type='sine';
+      g.gain.setValueAtTime(.55,ctx.currentTime+delay);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+delay+.25);
+      o.start(ctx.currentTime+delay);
+      o.stop(ctx.currentTime+delay+.3);
+    });
+  } catch(e){}
+}
+function sendNotif() {
+  if ('Notification' in window && Notification.permission==='granted') {
+    new Notification('⏱ ¡Descanso terminado!',{
+      body:'Es hora de continuar con tu rutina 💪',
+      icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🌸</text></svg>'
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  CELEBRATION
+// ══════════════════════════════════════════════════════
+function showCeleb() {
+  launchConfetti();
+  document.getElementById('celebMsg').textContent =
+    `Completaste todos los ejercicios del ${DAYS[activeDay].name}. ¡Eres una crack! 🔥`;
+  document.getElementById('celebOv').classList.add('show');
+}
+function closeCeleb() { document.getElementById('celebOv').classList.remove('show'); }
+
+function launchConfetti() {
+  const layer = document.getElementById('confetti');
+  layer.innerHTML = '';
+  const cols = ['#e91e8c','#ff6b9d','#ffc107','#43a047','#2196f3','#9c27b0','#ff5722','#00bcd4'];
+  for (let i=0;i<90;i++) {
+    const el = document.createElement('div');
+    el.className = 'cf';
+    const sz = 6+Math.random()*9;
+    el.style.cssText = `
+      left:${Math.random()*100}%;
+      width:${sz}px;
+      height:${Math.random()>.5?sz:sz*.5}px;
+      background:${cols[Math.floor(Math.random()*cols.length)]};
+      border-radius:${Math.random()>.5?'50%':'2px'};
+      animation-duration:${1.5+Math.random()*2.2}s;
+      animation-delay:${Math.random()*.9}s;
+      --dx:${-130+Math.random()*260}px;`;
+    layer.appendChild(el);
+  }
+  setTimeout(()=>layer.innerHTML='', 4800);
+}
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+loadState();
+renderTabs();
+renderDay(activeDay);
+updateRing(activeDay);
+</script>
+</body>
+</html>
