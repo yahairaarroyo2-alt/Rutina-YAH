@@ -436,7 +436,6 @@ function toggle(d, i) {
   const wasAll = s.size === DAYS[d].exercises.length;
   if (s.has(i)) { s.delete(i); } else {
     s.add(i);
-    openTimer(DAYS[d].exercises[i].rest);
   }
   saveState();
   renderDay(d);
