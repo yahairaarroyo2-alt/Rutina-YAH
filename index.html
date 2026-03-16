@@ -718,6 +718,7 @@ function initLogin() {
 
 function pinPress(digit) {
   if (pinBuffer.length >= 4) return;
+  document.getElementById('loginErr').classList.remove('show');
   pinBuffer += digit;
   updatePinDots();
   if (pinBuffer.length === 4) setTimeout(processPin, 150);
