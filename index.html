@@ -331,7 +331,13 @@ const DAYS = [
 // ══════════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════════
-let activeDay = 0;
+// Map JS day (0=Sun,1=Mon,...,6=Sat) to workout day index (0=Lunes..4=Viernes)
+function getTodayIndex() {
+  const jsDay = new Date().getDay(); // 0=Dom,1=Lun,2=Mar,3=Mié,4=Jue,5=Vie,6=Sáb
+  const map = { 1:0, 2:1, 3:2, 4:3, 5:4 }; // Lun→0, Mar→1, Mié→2, Jue→3, Vie→4
+  return map[jsDay] !== undefined ? map[jsDay] : 0; // fines de semana → Lunes
+}
+let activeDay = getTodayIndex();
 let doneMap   = {};   // { dayIdx: Set<exIdx> }
 
 // Timer
