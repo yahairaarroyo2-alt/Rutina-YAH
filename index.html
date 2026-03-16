@@ -150,6 +150,50 @@
     .t-main   { background: linear-gradient(135deg,var(--pink),var(--pink2)); color: #fff; flex: 2; }
     .t-rst    { background: #f0f0f0; color: var(--muted); }
 
+    /* ─── LOGIN ─── */
+    .login-screen {
+      position: fixed; inset: 0; z-index: 1100;
+      background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 50%, #e3f2fd 100%);
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity .4s ease;
+    }
+    .login-screen.hidden { opacity: 0; pointer-events: none; }
+    .login-card {
+      background: #fff; border-radius: 28px; padding: 36px 28px;
+      text-align: center; max-width: 320px; width: 90%;
+      box-shadow: 0 8px 40px rgba(233,30,140,.18);
+    }
+    .login-em   { font-size: 56px; display: block; margin-bottom: 8px; }
+    .login-title{ font-size: 24px; font-weight: 800; color: var(--pink); margin-bottom: 6px; }
+    .login-sub  { font-size: 13px; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
+    .pin-dots   { display: flex; gap: 14px; justify-content: center; margin-bottom: 28px; }
+    .pin-dot    {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #ede8f0; border: 2px solid var(--border);
+      transition: all .2s cubic-bezier(.34,1.56,.64,1);
+    }
+    .pin-dot.filled { background: var(--pink); border-color: var(--pink); transform: scale(1.15); }
+    .pin-dot.error  { background: #ef5350; border-color: #ef5350; }
+    .numpad {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 10px;
+      max-width: 240px; margin: 0 auto;
+    }
+    .num-btn {
+      padding: 14px 0; border-radius: 16px; border: 2px solid var(--border);
+      background: #fafafa; font-size: 22px; font-weight: 700; cursor: pointer;
+      color: var(--text); transition: all .15s; user-select: none;
+    }
+    .num-btn:active { transform: scale(.93); background: var(--pink-light); border-color: var(--pink); }
+    .num-btn.del    { font-size: 18px; color: var(--muted); }
+    .num-btn.empty  { visibility: hidden; pointer-events: none; }
+    .login-err {
+      margin-top: 18px; padding: 10px 14px; background: #ffebee;
+      border-radius: 12px; color: #c62828; font-size: 13px; font-weight: 600;
+      display: none;
+    }
+    .login-err.show { display: block; }
+    .login-setup-hint { margin-top: 18px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+
     /* ─── CELEBRATION ─── */
     .confetti-layer { position: fixed; inset: 0; z-index: 900; pointer-events: none; overflow: hidden; }
     .cf { position: absolute; border-radius: 2px; animation: cfFall linear forwards; }
@@ -167,6 +211,37 @@
   </style>
 </head>
 <body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <span class="login-em">🌸</span>
+    <p class="login-title" id="loginTitle">Mi Rutina</p>
+    <p class="login-sub"   id="loginSub">Ingresa tu PIN de 4 dígitos</p>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+    <div class="numpad">
+      <button class="num-btn" onclick="pinPress('1')">1</button>
+      <button class="num-btn" onclick="pinPress('2')">2</button>
+      <button class="num-btn" onclick="pinPress('3')">3</button>
+      <button class="num-btn" onclick="pinPress('4')">4</button>
+      <button class="num-btn" onclick="pinPress('5')">5</button>
+      <button class="num-btn" onclick="pinPress('6')">6</button>
+      <button class="num-btn" onclick="pinPress('7')">7</button>
+      <button class="num-btn" onclick="pinPress('8')">8</button>
+      <button class="num-btn" onclick="pinPress('9')">9</button>
+      <button class="num-btn empty"></button>
+      <button class="num-btn" onclick="pinPress('0')">0</button>
+      <button class="num-btn del" onclick="pinDel()">⌫</button>
+    </div>
+    <div class="login-err" id="loginErr">PIN incorrecto. Intenta de nuevo.</div>
+    <p class="login-setup-hint" id="loginHint"></p>
+  </div>
+</div>
 
 <!-- HEADER -->
 <header class="header">
@@ -606,12 +681,121 @@ function launchConfetti() {
 }
 
 // ══════════════════════════════════════════════════════
+//  LOGIN / PIN
+// ══════════════════════════════════════════════════════
+const PIN_KEY     = 'fba_pin_v1';
+const SESSION_KEY = 'fba_session_v1';
+let pinBuffer = '';
+let pinMode   = 'enter'; // 'setup' | 'confirm' | 'enter'
+let pinFirst  = '';
+
+function pinSavedHash() { return localStorage.getItem(PIN_KEY); }
+
+function simpleHash(s) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
+  return (h >>> 0).toString(16);
+}
+
+function initLogin() {
+  // Already authenticated this session?
+  if (sessionStorage.getItem(SESSION_KEY) === '1') {
+    unlockApp();
+    return;
+  }
+  const saved = pinSavedHash();
+  if (!saved) {
+    pinMode = 'setup';
+    document.getElementById('loginTitle').textContent = 'Crear PIN';
+    document.getElementById('loginSub').textContent   = 'Elige un PIN de 4 dígitos para proteger tu rutina';
+    document.getElementById('loginHint').textContent  = 'Solo tú podrás acceder a tu progreso.';
+  } else {
+    pinMode = 'enter';
+    document.getElementById('loginTitle').textContent = '¡Hola de nuevo! 🌸';
+    document.getElementById('loginSub').textContent   = 'Ingresa tu PIN de 4 dígitos';
+  }
+}
+
+function pinPress(digit) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += digit;
+  updatePinDots();
+  if (pinBuffer.length === 4) setTimeout(processPin, 150);
+}
+
+function pinDel() {
+  pinBuffer = pinBuffer.slice(0, -1);
+  updatePinDots(false);
+  document.getElementById('loginErr').classList.remove('show');
+}
+
+function updatePinDots(shake) {
+  for (let i = 0; i < 4; i++) {
+    const d = document.getElementById('d' + i);
+    d.classList.toggle('filled', i < pinBuffer.length);
+    d.classList.remove('error');
+  }
+}
+
+function processPin() {
+  if (pinMode === 'setup') {
+    pinFirst = pinBuffer;
+    pinBuffer = '';
+    updatePinDots();
+    pinMode = 'confirm';
+    document.getElementById('loginSub').textContent = 'Repite el PIN para confirmar';
+    return;
+  }
+  if (pinMode === 'confirm') {
+    if (pinBuffer === pinFirst) {
+      localStorage.setItem(PIN_KEY, simpleHash(pinBuffer));
+      sessionStorage.setItem(SESSION_KEY, '1');
+      unlockApp();
+    } else {
+      showPinError('Los PINs no coinciden. Empieza de nuevo.');
+      pinMode = 'setup';
+      pinFirst = '';
+      pinBuffer = '';
+      document.getElementById('loginSub').textContent = 'Elige un PIN de 4 dígitos';
+    }
+    return;
+  }
+  // enter mode
+  if (simpleHash(pinBuffer) === pinSavedHash()) {
+    sessionStorage.setItem(SESSION_KEY, '1');
+    unlockApp();
+  } else {
+    showPinError('PIN incorrecto. Intenta de nuevo.');
+    pinBuffer = '';
+  }
+}
+
+function showPinError(msg) {
+  document.getElementById('loginErr').textContent = msg;
+  document.getElementById('loginErr').classList.add('show');
+  for (let i = 0; i < 4; i++) {
+    const d = document.getElementById('d' + i);
+    d.classList.add('error');
+  }
+  setTimeout(() => {
+    for (let i = 0; i < 4; i++) document.getElementById('d' + i).classList.remove('error', 'filled');
+  }, 700);
+}
+
+function unlockApp() {
+  const screen = document.getElementById('loginScreen');
+  screen.classList.add('hidden');
+  setTimeout(() => screen.style.display = 'none', 450);
+}
+
+// ══════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════
 loadState();
 renderTabs();
 renderDay(activeDay);
 updateRing(activeDay);
+initLogin();
 </script>
 </body>
 </html>
