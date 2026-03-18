@@ -176,6 +176,39 @@
     .mini-num  { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
     .mini-unit { font-size: 11px; font-weight: 600; opacity: .8; }
 
+    /* ─── PESAS / PESO ─── */
+    .weight-btn {
+      width: 100%; margin-top: 8px;
+      padding: 9px 14px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg,#fff3e0,#ffe0b2);
+      color: #e65100; font-size: 13px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: transform .15s;
+    }
+    .weight-btn:active { transform: scale(.97); }
+    .weight-val { font-size: 15px; font-weight: 800; color: #bf360c; }
+
+    .w-input-wrap { margin: 18px 0 14px; display: flex; align-items: center; gap: 10px; }
+    .w-input {
+      flex: 1; font-size: 40px; font-weight: 800; text-align: center;
+      border: 2.5px solid var(--border); border-radius: 16px; padding: 14px 10px;
+      color: var(--text); outline: none; -webkit-appearance: none; background: #fff;
+    }
+    .w-input:focus { border-color: var(--pink); }
+    .w-unit { font-size: 22px; font-weight: 700; color: var(--muted); }
+    .w-save { width: 100%; padding: 15px; border-radius: 16px; border: none; background: linear-gradient(135deg,var(--pink),var(--pink2)); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; transition: transform .15s; }
+    .w-save:active { transform: scale(.97); }
+    .w-hist-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin: 20px 0 10px; display: flex; align-items: center; gap: 8px; }
+    .w-hist-title::after { content:''; flex:1; height:1px; background:var(--border); }
+    .w-hist-list { list-style: none; display: flex; flex-direction: column; gap: 7px; margin-bottom: 20px; }
+    .w-hist-item { display: flex; justify-content: space-between; align-items: center; padding: 11px 14px; background: #fdf8ff; border-radius: 13px; border: 1.5px solid var(--border); }
+    .w-hist-date { font-size: 12px; color: var(--muted); }
+    .w-hist-lbs  { font-size: 17px; font-weight: 800; color: var(--pink); }
+    .w-hist-delta { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 20px; margin-left: 8px; }
+    .w-delta-up   { background: #e8f5e9; color: #2e7d32; }
+    .w-delta-down { background: #fce4ec; color: #c62828; }
+    .w-hist-empty { text-align: center; padding: 28px 16px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+
     /* ─── CELEBRATION ─── */
     .confetti-layer { position: fixed; inset: 0; z-index: 900; pointer-events: none; overflow: hidden; }
     .cf { position: absolute; border-radius: 2px; animation: cfFall linear forwards; }
@@ -258,6 +291,24 @@
       <button class="t-btn t-rst"  onclick="resetTimer()">↺</button>
       <button class="t-btn t-main" id="tBtn" onclick="toggleTimer()">▶ Iniciar</button>
     </div>
+  </div>
+</div>
+
+<!-- WEIGHT MODAL -->
+<div class="overlay" id="weightOv" onclick="if(event.target===this)closeWeight()">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <button class="sheet-close" onclick="closeWeight()">✕</button>
+    <p class="sheet-title" id="wTitle">🏋 Peso</p>
+    <p class="sheet-sub">Anota cuánto levantaste hoy</p>
+    <div class="w-input-wrap">
+      <input class="w-input" id="wInput" type="number" min="0" max="999" step="0.5"
+             placeholder="0" inputmode="decimal" onkeydown="if(event.key==='Enter')saveWeight()">
+      <span class="w-unit">lb</span>
+    </div>
+    <button class="w-save" onclick="saveWeight()">Guardar registro</button>
+    <p class="w-hist-title">Historial</p>
+    <div id="wHist"></div>
   </div>
 </div>
 
@@ -463,6 +514,9 @@ function cards(list, all, doneSet, d) {
         <button class="ex-btn btn-view" onclick="openGif(${d},${i})">🎬 Ver ejercicio</button>
         <button class="ex-btn btn-rest" onclick="openTimer(${ex.rest})">⏱ Descanso</button>
       </div>
+      ${isWeighted(ex) ? `<button class="weight-btn" onclick="openWeight(${d},${i})">
+        🏋 ${getLastWeight(ex.name) ? `<span class="weight-val">${getLastWeight(ex.name)} lb</span> · cambiar` : 'Anotar peso'}
+      </button>` : ''}
     </div>`;
   }).join('');
 }
@@ -661,9 +715,78 @@ function launchConfetti() {
 }
 
 // ══════════════════════════════════════════════════════
+//  WEIGHT TRACKER
+// ══════════════════════════════════════════════════════
+let weightLog = {};
+let currentWeightKey = '';
+
+function loadWeights() {
+  try {
+    const s = localStorage.getItem('fba_weights_v1');
+    if (s) weightLog = JSON.parse(s);
+  } catch(e) {}
+}
+function saveWeights() {
+  localStorage.setItem('fba_weights_v1', JSON.stringify(weightLog));
+}
+function isWeighted(ex) {
+  return !ex.equip.startsWith('Sin equipo') && ex.equip !== 'Banco/step' && ex.equip !== 'Rueda abdominal';
+}
+function getLastWeight(key) {
+  const log = weightLog[key];
+  return (log && log.length) ? log[log.length-1].lbs : null;
+}
+function openWeight(d, i) {
+  const ex = DAYS[d].exercises[i];
+  currentWeightKey = ex.name;
+  document.getElementById('wTitle').textContent = '🏋 ' + ex.name;
+  const last = getLastWeight(ex.name);
+  document.getElementById('wInput').value = last || '';
+  renderWeightHist(ex.name);
+  document.getElementById('weightOv').classList.add('open');
+  setTimeout(() => document.getElementById('wInput').focus(), 380);
+}
+function closeWeight() {
+  document.getElementById('weightOv').classList.remove('open');
+}
+function saveWeight() {
+  const val = parseFloat(document.getElementById('wInput').value);
+  if (!val || val <= 0) { document.getElementById('wInput').focus(); return; }
+  if (!weightLog[currentWeightKey]) weightLog[currentWeightKey] = [];
+  const today = new Date().toLocaleDateString('es', {day:'2-digit',month:'short',year:'2-digit'});
+  weightLog[currentWeightKey].push({date: today, lbs: val});
+  if (weightLog[currentWeightKey].length > 30) weightLog[currentWeightKey].shift();
+  saveWeights();
+  closeWeight();
+  renderDay(activeDay);
+}
+function renderWeightHist(key) {
+  const log = (weightLog[key] || []).slice().reverse().slice(0, 10);
+  const el = document.getElementById('wHist');
+  if (!log.length) {
+    el.innerHTML = '<p class="w-hist-empty">Aquí verás tu progreso.<br>¡Anota tu primer peso!</p>';
+    return;
+  }
+  el.innerHTML = '<ul class="w-hist-list">' + log.map((e, idx) => {
+    const prev = log[idx+1];
+    let delta = '';
+    if (prev) {
+      const diff = (e.lbs - prev.lbs).toFixed(1);
+      if (diff > 0)  delta = `<span class="w-hist-delta w-delta-up">+${diff}</span>`;
+      if (diff < 0)  delta = `<span class="w-hist-delta w-delta-down">${diff}</span>`;
+    }
+    return `<li class="w-hist-item">
+      <span class="w-hist-date">${e.date}</span>
+      <span><span class="w-hist-lbs">${e.lbs} lb</span>${delta}</span>
+    </li>`;
+  }).join('') + '</ul>';
+}
+
+// ══════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════
 loadState();
+loadWeights();
 renderTabs();
 renderDay(activeDay);
 updateRing(activeDay);
