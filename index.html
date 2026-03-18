@@ -150,6 +150,32 @@
     .t-main   { background: linear-gradient(135deg,var(--pink),var(--pink2)); color: #fff; flex: 2; }
     .t-rst    { background: #f0f0f0; color: var(--muted); }
 
+    /* ─── MINI TIMER FLOTANTE ─── */
+    .mini-timer {
+      position: fixed;
+      bottom: 28px;
+      right: 16px;
+      z-index: 400;
+      background: linear-gradient(135deg, var(--pink), var(--pink2));
+      color: #fff;
+      border-radius: 30px;
+      padding: 10px 16px 10px 10px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 22px rgba(233,30,140,.5);
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+      user-select: none;
+      animation: miniPop .3s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes miniPop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .mini-timer.visible { display: flex; }
+    .mini-timer:active { transform: scale(.93); }
+    .mini-arc-svg { transform: rotate(-90deg); flex-shrink: 0; }
+    .mini-num  { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+    .mini-unit { font-size: 11px; font-weight: 600; opacity: .8; }
+
     /* ─── CELEBRATION ─── */
     .confetti-layer { position: fixed; inset: 0; z-index: 900; pointer-events: none; overflow: hidden; }
     .cf { position: absolute; border-radius: 2px; animation: cfFall linear forwards; }
@@ -233,6 +259,17 @@
       <button class="t-btn t-main" id="tBtn" onclick="toggleTimer()">▶ Iniciar</button>
     </div>
   </div>
+</div>
+
+<!-- MINI TIMER FLOTANTE -->
+<div class="mini-timer" id="miniTimer" onclick="reopenTimer()">
+  <svg class="mini-arc-svg" width="30" height="30" viewBox="0 0 30 30">
+    <circle cx="15" cy="15" r="11" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="3"/>
+    <circle id="miniArc" cx="15" cy="15" r="11" fill="none" stroke="#fff" stroke-width="3"
+      stroke-linecap="round" stroke-dasharray="69.12" stroke-dashoffset="0"/>
+  </svg>
+  <span class="mini-num" id="miniNum">30</span>
+  <span class="mini-unit">seg</span>
 </div>
 
 <!-- CELEBRATION -->
@@ -503,7 +540,7 @@ function setPreset(s, btn) {
 }
 
 function openTimer(def) {
-  if (tRunning) stopTimer();
+  if (tRunning) { stopTimer(); document.getElementById('miniTimer').classList.remove('visible'); }
   const opts = [30,60,90,120];
   const best = opts.reduce((p,c)=>Math.abs(c-def)<Math.abs(p-def)?c:p);
   document.querySelectorAll('.pre-btn').forEach(b=>{
@@ -516,7 +553,13 @@ function openTimer(def) {
   if ('Notification' in window && Notification.permission==='default') Notification.requestPermission();
   setTimeout(startTimer, 350);
 }
-function closeTimer() { stopTimer(); document.getElementById('timerOv').classList.remove('open'); }
+function closeTimer() {
+  document.getElementById('timerOv').classList.remove('open');
+  updateMiniTimer();
+}
+function reopenTimer() {
+  document.getElementById('timerOv').classList.add('open');
+}
 
 function toggleTimer() { tRunning ? stopTimer() : startTimer(); }
 
@@ -533,14 +576,27 @@ function stopTimer() {
 }
 function resetTimer() {
   stopTimer(); tRem = tDur; updateTimerUI();
+  document.getElementById('miniTimer').classList.remove('visible');
   document.getElementById('tBtn').textContent = '▶ Iniciar';
 }
+const MINI_CIRC = 69.12; // 2*pi*11
 function updateTimerUI() {
   document.getElementById('tNum').textContent = tRem;
   document.getElementById('tArc').style.strokeDashoffset = T_CIRC*(1-tRem/tDur);
+  updateMiniTimer();
+}
+function updateMiniTimer() {
+  const mini = document.getElementById('miniTimer');
+  const show = tRunning && tRem > 0;
+  mini.classList.toggle('visible', show);
+  if (show) {
+    document.getElementById('miniNum').textContent = tRem;
+    document.getElementById('miniArc').style.strokeDashoffset = MINI_CIRC*(1-tRem/tDur);
+  }
 }
 function finishTimer() {
   stopTimer(); tRem = 0; updateTimerUI();
+  document.getElementById('miniTimer').classList.remove('visible');
   document.getElementById('tBtn').textContent = '▶ Iniciar';
   const n = document.getElementById('tNum');
   n.style.color = '#43a047';
