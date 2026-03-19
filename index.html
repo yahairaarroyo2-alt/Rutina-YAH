@@ -211,8 +211,9 @@
 
     /* ─── PROGRESO DE SERIES ─── */
     .set-dots { display: flex; gap: 5px; margin-top: 8px; }
-    .set-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); transition: background .25s, transform .2s; }
-    .set-dot.done { background: var(--pink); transform: scale(1.15); }
+    .set-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
+    .set-dot.done { background: var(--pink); animation: dotPop .35s cubic-bezier(.34,1.56,.64,1) forwards; }
+    @keyframes dotPop { 0% { transform: scale(0); background: var(--border); } 65% { transform: scale(1.45); } 100% { transform: scale(1.15); background: var(--pink); } }
 
     /* ─── TOAST ─── */
     .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
@@ -554,6 +555,34 @@ function cards(list, all, doneSet, d) {
   }).join('');
 }
 
+// Actualiza las bolitas de series de un ejercicio sin re-render completo
+function updateDots(d, i) {
+  const dotsEl = document.getElementById(`dots${d}_${i}`);
+  if (!dotsEl) return;
+  const completed = repState[`${d}-${i}`] || 0;
+  dotsEl.querySelectorAll('.set-dot').forEach((dot, s) => {
+    dot.classList.toggle('done', completed > s);
+  });
+}
+
+// Marca ejercicio como completado sin re-render completo (evita flash de dots)
+function markExDone(d, i) {
+  if (!doneMap[d]) doneMap[d] = new Set();
+  if (doneMap[d].has(i)) return;
+  const wasAll = doneMap[d].size === DAYS[d].exercises.length;
+  doneMap[d].add(i);
+  saveState();
+  const card = document.getElementById(`c${d}_${i}`);
+  if (card) {
+    card.classList.add('done');
+    const check = card.querySelector('.ex-check');
+    if (check) { check.classList.add('checked'); check.textContent = '✓'; }
+  }
+  updateRing(d);
+  renderTabs();
+  if (!wasAll && doneMap[d].size === DAYS[d].exercises.length) setTimeout(showCeleb, 400);
+}
+
 function toggle(d, i) {
   if (!doneMap[d]) doneMap[d] = new Set();
   const s = doneMap[d];
@@ -646,38 +675,45 @@ function setPreset(s, btn) {
 }
 
 function openTimer(def, d, i, sets) {
-  // If timer is already running, just reopen the modal without resetting
-  if (tRunning || (tRem > 0 && tRem < tDur)) {
+  const timerInProgress = tRunning || (tRem > 0 && tRem < tDur);
+
+  // SIEMPRE actualizar estado de series (incluso si el timer ya corre)
+  if (d !== undefined && i !== undefined && sets !== undefined) {
+    const key = `${d}-${i}`;
+    const isSameEx = timerExCtx && timerExCtx.key === key;
+    // Sólo incrementar si: timer está libre, O es un ejercicio diferente
+    if (!timerInProgress || !isSameEx) {
+      repState[key] = (repState[key] || 0) + 1;
+      if (repState[key] > sets) repState[key] = sets;
+    }
+    timerExCtx = { key, sets, d, i };
+    saveState();
+    updateDots(d, i); // actualiza bolitas en el DOM sin re-render
+    document.getElementById('timerSub').textContent = 'Respira y prepárate 💪';
+    document.getElementById('timerRep').textContent = `Serie ${repState[key]} de ${sets}`;
+    document.getElementById('repResetBtn').style.display = '';
+    // Auto-completar en última serie (sin re-render completo)
+    if (repState[key] >= sets) markExDone(d, i);
+  } else if (!timerInProgress) {
+    timerExCtx = null;
+    document.getElementById('timerSub').textContent = 'Elige el tiempo y respira';
+    document.getElementById('timerRep').textContent = '';
+    document.getElementById('repResetBtn').style.display = 'none';
+  }
+
+  // Si el timer ya está corriendo/pausado, sólo reabrir modal
+  if (timerInProgress) {
     document.getElementById('timerOv').classList.add('open');
     return;
   }
+
+  // Timer libre: configurar y arrancar
   const opts = [30,60,90,120];
   const best = opts.reduce((p,c)=>Math.abs(c-def)<Math.abs(p-def)?c:p);
   document.querySelectorAll('.pre-btn').forEach(b=>{
     b.classList.toggle('active', +b.dataset.s === best);
   });
   tDur = best; tRem = best;
-  // Track rep state
-  if (d !== undefined && i !== undefined && sets !== undefined) {
-    const key = `${d}-${i}`;
-    repState[key] = (repState[key] || 0) + 1;
-    if (repState[key] > sets) repState[key] = sets;
-    timerExCtx = { key, sets, d, i };
-    saveState();
-    document.getElementById('timerSub').textContent = 'Respira y prepárate 💪';
-    document.getElementById('timerRep').textContent = `Serie ${repState[key]} de ${sets}`;
-    document.getElementById('repResetBtn').style.display = '';
-    // Auto-complete exercise on last set
-    if (repState[key] >= sets) {
-      const done = getDone(d);
-      if (!done.has(i)) toggle(d, i);
-    }
-  } else {
-    timerExCtx = null;
-    document.getElementById('timerSub').textContent = 'Elige el tiempo y respira';
-    document.getElementById('timerRep').textContent = '';
-    document.getElementById('repResetBtn').style.display = 'none';
-  }
   updateTimerUI();
   document.getElementById('tBtn').textContent = '▶ Iniciar';
   document.getElementById('timerOv').classList.add('open');
@@ -696,12 +732,26 @@ function resetRepState() {
   if (!timerExCtx) return;
   const { key, d, i } = timerExCtx;
   delete repState[key];
+  // Desmarcar ejercicio si fue auto-completado (sin re-render completo)
+  if (doneMap[d] && doneMap[d].has(i)) {
+    doneMap[d].delete(i);
+    saveState();
+    const card = document.getElementById(`c${d}_${i}`);
+    if (card) {
+      card.classList.remove('done');
+      const check = card.querySelector('.ex-check');
+      if (check) { check.classList.remove('checked'); check.textContent = ''; }
+    }
+    updateDots(d, i);
+    updateRing(d);
+    renderTabs();
+  } else {
+    saveState();
+    updateDots(d, i);
+  }
   document.getElementById('timerRep').textContent = '';
   document.getElementById('repResetBtn').style.display = 'none';
   document.getElementById('timerSub').textContent = 'Elige el tiempo y respira';
-  // Unmark as done if it was auto-completed
-  const done = getDone(d);
-  if (done.has(i)) toggle(d, i);
   timerExCtx = null;
 }
 
@@ -781,6 +831,11 @@ function showCeleb() {
   document.getElementById('celebStats').textContent = `${total} ejercicios completados 🎯`;
   document.getElementById('celebMsg').textContent =
     `Completaste todos los ejercicios del ${DAYS[activeDay].name}. ¡Eres una crack! 🔥`;
+  // Reiniciar animación del emoji (para que replay en celebraciones sucesivas)
+  const em = document.querySelector('.celeb-em');
+  em.style.animation = 'none';
+  void em.offsetWidth; // force reflow
+  em.style.animation = '';
   document.getElementById('celebOv').classList.add('show');
   launchConfetti();
   setTimeout(launchStars, 300);
