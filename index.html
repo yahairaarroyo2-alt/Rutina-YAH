@@ -598,7 +598,11 @@ function setPreset(s, btn) {
 }
 
 function openTimer(def, d, i, sets) {
-  if (tRunning) { stopTimer(); document.getElementById('miniTimer').classList.remove('visible'); }
+  // If timer is already running, just reopen the modal without resetting
+  if (tRunning) {
+    document.getElementById('timerOv').classList.add('open');
+    return;
+  }
   const opts = [30,60,90,120];
   const best = opts.reduce((p,c)=>Math.abs(c-def)<Math.abs(p-def)?c:p);
   document.querySelectorAll('.pre-btn').forEach(b=>{
