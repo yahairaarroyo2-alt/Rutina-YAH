@@ -95,6 +95,9 @@
     .cv { background: var(--purple-light); color: var(--purple); }
     .cw { background: #fff3e0; color: #e65100; cursor: pointer; border: none; }
 
+    .timer-rep { text-align: center; font-size: 13px; font-weight: 700; color: var(--pink);
+                 margin: 0 0 4px; min-height: 20px; }
+
     .ex-acts { display: flex; gap: 8px; margin-top: 12px; }
     .ex-btn  { flex: 1; padding: 9px 8px; border-radius: 12px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; transition: transform .15s; }
     .ex-btn:active { transform: scale(.96); }
@@ -263,7 +266,8 @@
     <div class="sheet-handle"></div>
     <button class="sheet-close" onclick="closeTimer()">✕</button>
     <p class="sheet-title">⏱ Descanso</p>
-    <p class="sheet-sub">Elige el tiempo y respira</p>
+    <p class="sheet-sub" id="timerSub">Elige el tiempo y respira</p>
+    <p class="timer-rep" id="timerRep"></p>
     <div class="presets">
       <button class="pre-btn active" data-s="30"  onclick="setPreset(30,this)">30s</button>
       <button class="pre-btn"        data-s="60"  onclick="setPreset(60,this)">60s</button>
@@ -419,6 +423,8 @@ let doneMap   = {};   // { dayIdx: Set<exIdx> }
 // Timer
 let tDur = 30, tRem = 30, tRunning = false, tIv = null;
 const T_CIRC = 552.92;
+const repState = {}; // key: "d-i" → current set number
+let timerExCtx = null; // {key, sets} of current exercise
 
 function loadState() {
   try {
@@ -507,7 +513,7 @@ function cards(list, all, doneSet, d) {
       </div>
       <div class="ex-acts">
         <button class="ex-btn btn-view" onclick="openGif(${d},${i})">🎬 Ver ejercicio</button>
-        <button class="ex-btn btn-rest" onclick="openTimer(${ex.rest})">⏱ Descanso</button>
+        <button class="ex-btn btn-rest" onclick="openTimer(${ex.rest},${d},${i},${ex.sets})">⏱ Descanso</button>
       </div>
     </div>`;
   }).join('');
@@ -585,7 +591,7 @@ function setPreset(s, btn) {
   document.getElementById('tBtn').textContent = '▶ Iniciar';
 }
 
-function openTimer(def) {
+function openTimer(def, d, i, sets) {
   if (tRunning) { stopTimer(); document.getElementById('miniTimer').classList.remove('visible'); }
   const opts = [30,60,90,120];
   const best = opts.reduce((p,c)=>Math.abs(c-def)<Math.abs(p-def)?c:p);
@@ -593,6 +599,19 @@ function openTimer(def) {
     b.classList.toggle('active', +b.dataset.s === best);
   });
   tDur = best; tRem = best;
+  // Track rep state
+  if (d !== undefined && i !== undefined && sets !== undefined) {
+    const key = `${d}-${i}`;
+    repState[key] = (repState[key] || 0) + 1;
+    if (repState[key] > sets) repState[key] = sets;
+    timerExCtx = { key, sets };
+    document.getElementById('timerSub').textContent = 'Respira y prepárate 💪';
+    document.getElementById('timerRep').textContent = `Serie ${repState[key]} de ${sets}`;
+  } else {
+    timerExCtx = null;
+    document.getElementById('timerSub').textContent = 'Elige el tiempo y respira';
+    document.getElementById('timerRep').textContent = '';
+  }
   updateTimerUI();
   document.getElementById('tBtn').textContent = '▶ Iniciar';
   document.getElementById('timerOv').classList.add('open');
