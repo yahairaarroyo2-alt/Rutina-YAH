@@ -209,6 +209,18 @@
     .w-delta-down { background: #fce4ec; color: #c62828; }
     .w-hist-empty { text-align: center; padding: 28px 16px; color: var(--muted); font-size: 13px; line-height: 1.6; }
 
+    /* ─── PROGRESO DE SERIES ─── */
+    .set-dots { display: flex; gap: 5px; margin-top: 8px; }
+    .set-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); transition: background .25s, transform .2s; }
+    .set-dot.done { background: var(--pink); transform: scale(1.15); }
+
+    /* ─── TOAST ─── */
+    .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+             background: #1a1a2e; color: #fff; padding: 10px 20px; border-radius: 20px;
+             font-size: 13px; font-weight: 600; z-index: 1100; opacity: 0;
+             transition: opacity .25s, transform .25s; pointer-events: none; white-space: nowrap; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
     /* ─── CELEBRATION ─── */
     .confetti-layer { position: fixed; inset: 0; z-index: 900; pointer-events: none; overflow: hidden; }
     .cf { position: absolute; border-radius: 2px; animation: cfFall linear forwards; }
@@ -325,6 +337,9 @@
   <span class="mini-unit">seg</span>
 </div>
 
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
 <!-- CELEBRATION -->
 <div class="confetti-layer" id="confetti"></div>
 <div class="celeb-ov" id="celebOv" onclick="if(event.target===this)closeCeleb()">
@@ -434,11 +449,14 @@ function loadState() {
   try {
     const s = localStorage.getItem('fba_done_v2');
     if (s) { const r = JSON.parse(s); for (const [k,v] of Object.entries(r)) doneMap[+k] = new Set(v); }
+    const rs = localStorage.getItem('fba_reps_v1');
+    if (rs) { const r = JSON.parse(rs); for (const [k,v] of Object.entries(r)) repState[k] = v; }
   } catch(e){}
 }
 function saveState() {
   const r = {}; for (const [k,v] of Object.entries(doneMap)) r[k] = [...v];
   localStorage.setItem('fba_done_v2', JSON.stringify(r));
+  localStorage.setItem('fba_reps_v1', JSON.stringify(repState));
 }
 function getDone(d) { return doneMap[d] || new Set(); }
 
@@ -515,6 +533,9 @@ function cards(list, all, doneSet, d) {
         <span class="chip cv">🏋 ${ex.equip}</span>
         ${isWeighted(ex) ? `<button class="chip cw" onclick="openWeight(${d},${i})">⚖️ ${getLastWeight(ex.name) ? getLastWeight(ex.name) + ' lb' : 'Anotar peso'}</button>` : ''}
       </div>
+      <div class="set-dots" id="dots${d}_${i}">
+        ${Array.from({length:ex.sets},(_,s)=>`<div class="set-dot ${(repState[\`${d}-${i}\`]||0)>s?'done':''}"></div>`).join('')}
+      </div>
       <div class="ex-acts">
         <button class="ex-btn btn-view" onclick="openGif(${d},${i})">🎬 Ver ejercicio</button>
         <button class="ex-btn btn-rest" onclick="openTimer(${ex.rest},${d},${i},${ex.sets})">⏱ Descanso</button>
@@ -551,6 +572,7 @@ function switchDay(d) {
 }
 
 function resetDay(d) {
+  if (!confirm(`¿Reiniciar el progreso de ${DAYS[d].name}? Se borrarán las series y ejercicios completados.`)) return;
   doneMap[d] = new Set();
   // Clear rep counters for this day
   DAYS[d].exercises.forEach((_, i) => delete repState[`${d}-${i}`]);
@@ -627,6 +649,7 @@ function openTimer(def, d, i, sets) {
     repState[key] = (repState[key] || 0) + 1;
     if (repState[key] > sets) repState[key] = sets;
     timerExCtx = { key, sets, d, i };
+    saveState();
     document.getElementById('timerSub').textContent = 'Respira y prepárate 💪';
     document.getElementById('timerRep').textContent = `Serie ${repState[key]} de ${sets}`;
     document.getElementById('repResetBtn').style.display = '';
@@ -710,6 +733,7 @@ function finishTimer() {
   setTimeout(()=>n.style.color='', 2200);
   playBeep();
   sendNotif();
+  try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch(e){}
 }
 function playBeep() {
   try {
@@ -812,6 +836,14 @@ function saveWeight() {
   saveWeights();
   closeWeight();
   renderDay(activeDay);
+  showToast('✅ Peso guardado — ' + val + ' lb');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
 }
 function deleteWeight(idx) {
   if (!weightLog[currentWeightKey]) return;
