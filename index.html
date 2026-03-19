@@ -534,7 +534,7 @@ function cards(list, all, doneSet, d) {
         ${isWeighted(ex) ? `<button class="chip cw" onclick="openWeight(${d},${i})">⚖️ ${getLastWeight(ex.name) ? getLastWeight(ex.name) + ' lb' : 'Anotar peso'}</button>` : ''}
       </div>
       <div class="set-dots" id="dots${d}_${i}">
-        ${Array.from({length:ex.sets},(_,s)=>`<div class="set-dot ${(repState[\`${d}-${i}\`]||0)>s?'done':''}"></div>`).join('')}
+        ${Array.from({length:ex.sets},(_,s)=>'<div class="set-dot '+((repState[d+'-'+i]||0)>s?'done':'')+'"></div>').join('')}
       </div>
       <div class="ex-acts">
         <button class="ex-btn btn-view" onclick="openGif(${d},${i})">🎬 Ver ejercicio</button>
