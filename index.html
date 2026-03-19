@@ -97,6 +97,9 @@
 
     .timer-rep { text-align: center; font-size: 13px; font-weight: 700; color: var(--pink);
                  margin: 0 0 4px; min-height: 20px; }
+    .rep-reset-btn { display: block; margin: 0 auto 6px; padding: 4px 12px; border-radius: 20px;
+                     border: none; background: var(--pink-light); color: var(--pink);
+                     font-size: 11px; font-weight: 600; cursor: pointer; }
 
     .ex-acts { display: flex; gap: 8px; margin-top: 12px; }
     .ex-btn  { flex: 1; padding: 9px 8px; border-radius: 12px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; transition: transform .15s; }
@@ -268,6 +271,7 @@
     <p class="sheet-title">⏱ Descanso</p>
     <p class="sheet-sub" id="timerSub">Elige el tiempo y respira</p>
     <p class="timer-rep" id="timerRep"></p>
+    <button class="rep-reset-btn" id="repResetBtn" onclick="resetRepState()" style="display:none">↺ Reiniciar series</button>
     <div class="presets">
       <button class="pre-btn active" data-s="30"  onclick="setPreset(30,this)">30s</button>
       <button class="pre-btn"        data-s="60"  onclick="setPreset(60,this)">60s</button>
@@ -609,6 +613,7 @@ function openTimer(def, d, i, sets) {
     timerExCtx = { key, sets, d, i };
     document.getElementById('timerSub').textContent = 'Respira y prepárate 💪';
     document.getElementById('timerRep').textContent = `Serie ${repState[key]} de ${sets}`;
+    document.getElementById('repResetBtn').style.display = '';
     // Auto-complete exercise on last set
     if (repState[key] >= sets) {
       const done = getDone(d);
@@ -618,6 +623,7 @@ function openTimer(def, d, i, sets) {
     timerExCtx = null;
     document.getElementById('timerSub').textContent = 'Elige el tiempo y respira';
     document.getElementById('timerRep').textContent = '';
+    document.getElementById('repResetBtn').style.display = 'none';
   }
   updateTimerUI();
   document.getElementById('tBtn').textContent = '▶ Iniciar';
@@ -631,6 +637,19 @@ function closeTimer() {
 }
 function reopenTimer() {
   document.getElementById('timerOv').classList.add('open');
+}
+
+function resetRepState() {
+  if (!timerExCtx) return;
+  const { key, d, i } = timerExCtx;
+  delete repState[key];
+  document.getElementById('timerRep').textContent = '';
+  document.getElementById('repResetBtn').style.display = 'none';
+  document.getElementById('timerSub').textContent = 'Elige el tiempo y respira';
+  // Unmark as done if it was auto-completed
+  const done = getDone(d);
+  if (done.has(i)) toggle(d, i);
+  timerExCtx = null;
 }
 
 function toggleTimer() { tRunning ? stopTimer() : startTimer(); }
