@@ -544,6 +544,8 @@ function switchDay(d) {
 
 function resetDay(d) {
   doneMap[d] = new Set();
+  // Clear rep counters for this day
+  DAYS[d].exercises.forEach((_, i) => delete repState[`${d}-${i}`]);
   saveState();
   renderDay(d);
   updateRing(d);
@@ -604,9 +606,14 @@ function openTimer(def, d, i, sets) {
     const key = `${d}-${i}`;
     repState[key] = (repState[key] || 0) + 1;
     if (repState[key] > sets) repState[key] = sets;
-    timerExCtx = { key, sets };
+    timerExCtx = { key, sets, d, i };
     document.getElementById('timerSub').textContent = 'Respira y prepárate 💪';
     document.getElementById('timerRep').textContent = `Serie ${repState[key]} de ${sets}`;
+    // Auto-complete exercise on last set
+    if (repState[key] >= sets) {
+      const done = getDone(d);
+      if (!done.has(i)) toggle(d, i);
+    }
   } else {
     timerExCtx = null;
     document.getElementById('timerSub').textContent = 'Elige el tiempo y respira';
