@@ -413,7 +413,7 @@ const DAYS = [
       {name:'Elevaciones laterales',              sets:4,reps:'15',      rest:30, note:'Hombro medio', equip:'Mancuernas',             gif:'https://media.giphy.com/media/mkzzJZXQcUZ9SnuKmS/giphy.gif'},
       {name:'Curl bíceps con mancuernas',         sets:4,reps:'12',      rest:30, note:'Bíceps',       equip:'Mancuernas',             gif:'https://media.giphy.com/media/KUVTfh1CUbRy5lNpVs/giphy.gif'},
       {name:'Extensión tríceps en polea',         sets:4,reps:'12',      rest:30, note:'Tríceps',      equip:'Polea alta',             gif:'https://media.giphy.com/media/YuWaWP87NB84qM4IQO/giphy.gif'},
-      {name:'Plancha frontal',                    sets:4,reps:'40s',     rest:90, note:'Core · 90s entre rondas',equip:'Sin equipo',   gif:'https://media.giphy.com/media/ZcteOOkovIh9HaVFjT/giphy.gif'},
+      {name:'Plancha frontal',                    sets:4,reps:'40s',     rest:90, note:'Core · 90s entre rondas',equip:'Sin equipo',   gif:'https://media.giphy.com/media/ZcteOOkovIh9HaVFjT/giphy.gif', core:true},
     ]
   }
 ];
@@ -471,7 +471,7 @@ function renderDay(d) {
 
   let html = `<div class="day-intro">
     <div class="day-title">${day.emoji} ${day.name} — ${day.focus}</div>
-    <div class="day-focus">${day.exercises.length} ejercicios · Post-menisco · Rodilla protegida</div>
+    <div class="day-focus">${day.exercises.length} ejercicios · ${day.warning ? 'Rodilla protegida' : 'Pérdida de grasa'}</div>
     ${day.warning  ? `<div class="day-warn">${day.warning}</div>` : ''}
     ${day.metabolic? `<div class="day-metab">🔥 4 rondas · 30s entre ejercicios · 90s entre rondas</div>` : ''}
   </div>`;
@@ -527,7 +527,11 @@ function toggle(d, i) {
   if (!doneMap[d]) doneMap[d] = new Set();
   const s = doneMap[d];
   const wasAll = s.size === DAYS[d].exercises.length;
-  if (s.has(i)) { s.delete(i); } else {
+  if (s.has(i)) {
+    s.delete(i);
+    // Reset rep counter when manually unchecking
+    delete repState[`${d}-${i}`];
+  } else {
     s.add(i);
   }
   saveState();
@@ -550,6 +554,13 @@ function resetDay(d) {
   doneMap[d] = new Set();
   // Clear rep counters for this day
   DAYS[d].exercises.forEach((_, i) => delete repState[`${d}-${i}`]);
+  // Stop timer if it belongs to this day
+  if (timerExCtx && timerExCtx.d === d) {
+    stopTimer();
+    timerExCtx = null;
+    document.getElementById('miniTimer').classList.remove('visible');
+    document.getElementById('timerOv').classList.remove('open');
+  }
   saveState();
   renderDay(d);
   updateRing(d);
@@ -592,7 +603,8 @@ function setPreset(s, btn) {
   document.querySelectorAll('.pre-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   tDur = s; tRem = s;
-  if (tRunning) stopTimer();
+  stopTimer();
+  document.getElementById('miniTimer').classList.remove('visible');
   updateTimerUI();
   document.getElementById('tBtn').textContent = '▶ Iniciar';
 }
@@ -842,6 +854,7 @@ loadWeights();
 renderTabs();
 renderDay(activeDay);
 updateRing(activeDay);
+document.getElementById('hdSub').textContent = DAYS[activeDay].focus;
 </script>
 </body>
 </html>
