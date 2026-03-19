@@ -465,7 +465,7 @@ function getDone(d) { return doneMap[d] || new Set(); }
 // ══════════════════════════════════════════════════════
 function renderTabs() {
   document.getElementById('tabs').innerHTML = DAYS.map((d,i) => `
-    <button class="tab ${i===activeDay?'active':''} ${getDone(i).size>0?'has-dot':''}"
+    <button class="tab ${i===activeDay?'active':''} ${getDone(i).size===DAYS[i].exercises.length&&getDone(i).size>0?'has-dot':''}"
             onclick="switchDay(${i})">
       <span class="em">${d.emoji}</span>
       <span>${d.name}</span>
@@ -567,7 +567,6 @@ function switchDay(d) {
   renderTabs();
   renderDay(d);
   updateRing(d);
-  document.getElementById('hdSub').textContent = DAYS[d].focus;
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -633,7 +632,7 @@ function setPreset(s, btn) {
 
 function openTimer(def, d, i, sets) {
   // If timer is already running, just reopen the modal without resetting
-  if (tRunning) {
+  if (tRunning || (tRem > 0 && tRem < tDur)) {
     document.getElementById('timerOv').classList.add('open');
     return;
   }
@@ -886,7 +885,7 @@ loadWeights();
 renderTabs();
 renderDay(activeDay);
 updateRing(activeDay);
-document.getElementById('hdSub').textContent = DAYS[activeDay].focus;
+// hdSub keeps its static text from HTML
 </script>
 </body>
 </html>
