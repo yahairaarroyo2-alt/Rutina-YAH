@@ -202,6 +202,8 @@
     .w-hist-title::after { content:''; flex:1; height:1px; background:var(--border); }
     .w-hist-list { list-style: none; display: flex; flex-direction: column; gap: 7px; margin-bottom: 20px; }
     .w-hist-item { display: flex; justify-content: space-between; align-items: center; padding: 11px 14px; background: #fdf8ff; border-radius: 13px; border: 1.5px solid var(--border); }
+    .w-del-btn { width: 26px; height: 26px; border-radius: 50%; border: none; background: #fce4ec; color: #c62828; font-size: 13px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .15s; }
+    .w-del-btn:active { background: #ef9a9a; }
     .w-hist-date { font-size: 12px; color: var(--muted); }
     .w-hist-lbs  { font-size: 17px; font-weight: 800; color: var(--pink); }
     .w-hist-delta { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 20px; margin-left: 8px; }
@@ -760,6 +762,13 @@ function saveWeight() {
   closeWeight();
   renderDay(activeDay);
 }
+function deleteWeight(idx) {
+  if (!weightLog[currentWeightKey]) return;
+  weightLog[currentWeightKey].splice(idx, 1);
+  saveWeights();
+  renderWeightHist(currentWeightKey);
+  renderDay(activeDay);
+}
 function renderWeightHist(key) {
   const log = (weightLog[key] || []).slice().reverse().slice(0, 10);
   const el = document.getElementById('wHist');
@@ -775,9 +784,13 @@ function renderWeightHist(key) {
       if (diff > 0)  delta = `<span class="w-hist-delta w-delta-up">+${diff}</span>`;
       if (diff < 0)  delta = `<span class="w-hist-delta w-delta-down">${diff}</span>`;
     }
+    const realIdx = (weightLog[key] || []).length - 1 - idx;
     return `<li class="w-hist-item">
       <span class="w-hist-date">${e.date}</span>
-      <span><span class="w-hist-lbs">${e.lbs} lb</span>${delta}</span>
+      <span style="display:flex;align-items:center;gap:8px">
+        <span><span class="w-hist-lbs">${e.lbs} lb</span>${delta}</span>
+        <button class="w-del-btn" onclick="deleteWeight(${realIdx})">✕</button>
+      </span>
     </li>`;
   }).join('') + '</ul>';
 }
