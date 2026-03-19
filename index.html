@@ -85,8 +85,8 @@
     }
     .ex-check.checked { background: var(--green); border-color: var(--green); color: #fff; transform: scale(1.1); }
     .ex-info  { flex: 1; min-width: 0; }
-    .ex-name  { font-size: 15px; font-weight: 700; line-height: 1.3; }
-    .ex-note  { font-size: 11px; color: var(--pink); font-weight: 600; margin-top: 3px; }
+    .ex-name  { font-size: 16px; font-weight: 800; line-height: 1.3; letter-spacing: -.2px; color: var(--text); }
+    .ex-note  { display: inline-block; font-size: 11px; color: var(--pink); font-weight: 700; margin-top: 5px; background: var(--pink-light); padding: 2px 9px; border-radius: 20px; }
 
     .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
     .chip  { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
@@ -228,13 +228,21 @@
 
     .celeb-ov { position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .4s; }
     .celeb-ov.show { opacity: 1; pointer-events: all; }
-    .celeb-card { background: #fff; border-radius: 28px; padding: 36px 28px; text-align: center; max-width: 300px; margin: 16px; box-shadow: 0 8px 40px rgba(233,30,140,.25); transform: scale(.6); transition: transform .5s cubic-bezier(.34,1.56,.64,1); }
-    .celeb-ov.show .celeb-card { transform: scale(1); }
-    .celeb-em    { font-size: 56px; display: block; margin-bottom: 12px; animation: wobble 1.5s ease-in-out infinite; }
+    .celeb-card { background: linear-gradient(160deg,#fff 55%,#fce4ec 100%); border-radius: 28px; padding: 36px 28px 28px; text-align: center; max-width: 320px; margin: 16px; box-shadow: 0 8px 60px rgba(233,30,140,.35); transform: scale(.6) translateY(30px); transition: transform .55s cubic-bezier(.34,1.56,.64,1); position: relative; overflow: hidden; }
+    .celeb-ov.show .celeb-card { transform: scale(1) translateY(0); }
+    .celeb-em    { font-size: 72px; display: block; margin-bottom: 14px; opacity: 0; animation: celebEmIn .6s cubic-bezier(.34,1.56,.64,1) .1s forwards, wobble 2s ease-in-out .7s infinite; }
+    @keyframes celebEmIn { from { transform: scale(0) rotate(-30deg); opacity: 0; } to { transform: scale(1) rotate(0deg); opacity: 1; } }
     @keyframes wobble { 0%,100% { transform: rotate(-6deg) scale(1); } 50% { transform: rotate(6deg) scale(1.12); } }
-    .celeb-title { font-size: 24px; font-weight: 800; color: var(--pink); margin-bottom: 8px; }
-    .celeb-msg   { font-size: 14px; color: var(--muted); margin-bottom: 22px; line-height: 1.5; }
-    .celeb-close { background: linear-gradient(135deg,var(--pink),var(--pink2)); color: #fff; border: none; padding: 14px 32px; border-radius: 16px; font-size: 15px; font-weight: 700; cursor: pointer; width: 100%; }
+    .celeb-title { font-size: 26px; font-weight: 800; background: linear-gradient(90deg, var(--pink), #ff6b9d, var(--pink)); background-size: 200% auto; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: shimmerText 2.5s linear infinite; margin-bottom: 8px; }
+    @keyframes shimmerText { to { background-position: 200% center; } }
+    .celeb-stats { font-size: 13px; font-weight: 700; color: var(--pink); background: var(--pink-light); padding: 5px 16px; border-radius: 20px; display: inline-block; margin-bottom: 12px; }
+    .celeb-msg   { font-size: 14px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
+    .celeb-progress { height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 18px; overflow: hidden; }
+    .celeb-progress-bar { height: 100%; background: linear-gradient(90deg,var(--pink),var(--pink2)); border-radius: 2px; width: 100%; }
+    .celeb-close { background: linear-gradient(135deg,var(--pink),var(--pink2)); color: #fff; border: none; padding: 15px 32px; border-radius: 16px; font-size: 15px; font-weight: 700; cursor: pointer; width: 100%; animation: pulseBtn 2s ease-in-out 1s infinite; }
+    @keyframes pulseBtn { 0%,100% { box-shadow: 0 0 0 0 rgba(233,30,140,.4); } 50% { box-shadow: 0 0 0 10px rgba(233,30,140,0); } }
+    .celeb-star { position: absolute; pointer-events: none; opacity: 0; animation: starBurst .9s ease-out forwards; }
+    @keyframes starBurst { 0% { transform: translate(-50%,-50%) scale(0); opacity: 1; } 100% { transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) scale(1.2); opacity: 0; } }
   </style>
 </head>
 <body>
@@ -343,10 +351,12 @@
 <!-- CELEBRATION -->
 <div class="confetti-layer" id="confetti"></div>
 <div class="celeb-ov" id="celebOv" onclick="if(event.target===this)closeCeleb()">
-  <div class="celeb-card">
+  <div class="celeb-card" id="celebCard">
     <span class="celeb-em">🏆</span>
     <p class="celeb-title">¡Día completado!</p>
+    <p class="celeb-stats" id="celebStats">0 ejercicios</p>
     <p class="celeb-msg" id="celebMsg">¡Increíble trabajo!</p>
+    <div class="celeb-progress"><div class="celeb-progress-bar" id="celebBar"></div></div>
     <button class="celeb-close" onclick="closeCeleb()">¡Gracias! 💪</button>
   </div>
 </div>
@@ -601,11 +611,16 @@ function openGif(d, i) {
   const img = new Image();
   img.onload = () => { box.innerHTML=''; img.style.width='100%'; box.appendChild(img); };
   img.onerror = () => {
-    const q = encodeURIComponent(ex.name + ' ejercicio cómo hacer');
+    const q = encodeURIComponent(ex.name + ' ejercicio técnica correcta');
     box.innerHTML = `<div class="gif-err">
-      <div class="ei">🎥</div>
-      <p>Imagen no disponible.<br>Busca el movimiento aquí:</p>
+      <div class="ei">📹</div>
+      <p><strong style="color:var(--text);font-size:14px">${ex.name}</strong><br>GIF no disponible · busca la técnica:</p>
       <a class="yt-btn" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">🔍 Ver en YouTube</a>
+      <div style="margin-top:14px;padding:12px 14px;background:var(--pink-light);border-radius:12px;text-align:left;font-size:12px;color:var(--text);line-height:1.8">
+        ${ex.note?`🎯 <strong>Músculo:</strong> ${ex.note}<br>`:''}
+        📊 <strong>Series:</strong> ${ex.sets} × ${ex.reps}<br>
+        🏋 <strong>Equipo:</strong> ${ex.equip}
+      </div>
     </div>`;
   };
   img.src = ex.gif;
@@ -760,34 +775,74 @@ function sendNotif() {
 // ══════════════════════════════════════════════════════
 //  CELEBRATION
 // ══════════════════════════════════════════════════════
+let celebTimer = null;
 function showCeleb() {
-  launchConfetti();
+  const total = DAYS[activeDay].exercises.length;
+  document.getElementById('celebStats').textContent = `${total} ejercicios completados 🎯`;
   document.getElementById('celebMsg').textContent =
     `Completaste todos los ejercicios del ${DAYS[activeDay].name}. ¡Eres una crack! 🔥`;
   document.getElementById('celebOv').classList.add('show');
+  launchConfetti();
+  setTimeout(launchStars, 300);
+  // Auto-close progress bar
+  const bar = document.getElementById('celebBar');
+  bar.style.transition = 'none';
+  bar.style.width = '100%';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    bar.style.transition = 'width 7s linear';
+    bar.style.width = '0%';
+  }));
+  clearTimeout(celebTimer);
+  celebTimer = setTimeout(closeCeleb, 7500);
 }
-function closeCeleb() { document.getElementById('celebOv').classList.remove('show'); }
+function closeCeleb() {
+  clearTimeout(celebTimer);
+  document.getElementById('celebOv').classList.remove('show');
+}
+
+function launchStars() {
+  const card = document.getElementById('celebCard');
+  card.querySelectorAll('.celeb-star').forEach(s => s.remove());
+  const emojis = ['⭐','✨','💫','🌟','💥','🎉','💖','🔥'];
+  for (let i = 0; i < 12; i++) {
+    const star = document.createElement('span');
+    star.className = 'celeb-star';
+    star.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    const angle = (i / 12) * 360;
+    const dist = 90 + Math.random() * 60;
+    const rad = angle * Math.PI / 180;
+    star.style.cssText = `
+      left:50%; top:28%;
+      font-size:${14+Math.random()*12}px;
+      --sx:${Math.cos(rad)*dist}px;
+      --sy:${Math.sin(rad)*dist}px;
+      animation-delay:${Math.random()*.25}s;`;
+    card.appendChild(star);
+    setTimeout(() => star.remove(), 1300);
+  }
+}
 
 function launchConfetti() {
   const layer = document.getElementById('confetti');
   layer.innerHTML = '';
-  const cols = ['#e91e8c','#ff6b9d','#ffc107','#43a047','#2196f3','#9c27b0','#ff5722','#00bcd4'];
-  for (let i=0;i<90;i++) {
+  const cols = ['#e91e8c','#ff6b9d','#ffc107','#43a047','#2196f3','#9c27b0','#ff5722','#00bcd4','#fff176'];
+  for (let i=0;i<130;i++) {
     const el = document.createElement('div');
     el.className = 'cf';
-    const sz = 6+Math.random()*9;
+    const sz = 5+Math.random()*10;
+    const circ = Math.random()>.5;
     el.style.cssText = `
       left:${Math.random()*100}%;
       width:${sz}px;
-      height:${Math.random()>.5?sz:sz*.5}px;
+      height:${circ?sz:sz*.45}px;
       background:${cols[Math.floor(Math.random()*cols.length)]};
-      border-radius:${Math.random()>.5?'50%':'2px'};
-      animation-duration:${1.5+Math.random()*2.2}s;
-      animation-delay:${Math.random()*.9}s;
-      --dx:${-130+Math.random()*260}px;`;
+      border-radius:${circ?'50%':'2px'};
+      animation-duration:${1.2+Math.random()*2.5}s;
+      animation-delay:${Math.random()*.8}s;
+      --dx:${-160+Math.random()*320}px;`;
     layer.appendChild(el);
   }
-  setTimeout(()=>layer.innerHTML='', 4800);
+  setTimeout(()=>layer.innerHTML='', 5200);
 }
 
 // ══════════════════════════════════════════════════════
