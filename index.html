@@ -349,6 +349,19 @@
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<!-- CONFIRM MODAL -->
+<div class="overlay" id="confirmOv" onclick="if(event.target===this)closeConfirm()">
+  <div class="sheet" style="padding-bottom:24px">
+    <div class="sheet-handle"></div>
+    <p class="sheet-title" id="confirmTitle" style="margin-bottom:6px"></p>
+    <p class="sheet-sub"   id="confirmBody"  style="margin-bottom:20px;font-size:13px;line-height:1.5"></p>
+    <div style="display:flex;gap:10px">
+      <button onclick="closeConfirm()" style="flex:1;padding:13px;border-radius:14px;border:2px solid var(--border);background:#fff;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer">Cancelar</button>
+      <button id="confirmOk" style="flex:1;padding:13px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--pink),var(--pink2));color:#fff;font-size:14px;font-weight:700;cursor:pointer">Reiniciar</button>
+    </div>
+  </div>
+</div>
+
 <!-- CELEBRATION -->
 <div class="confetti-layer" id="confetti"></div>
 <div class="celeb-ov" id="celebOv" onclick="if(event.target===this)closeCeleb()">
@@ -451,7 +464,7 @@ let activeDay = 0;
 let doneMap   = {};   // { dayIdx: Set<exIdx> }
 
 // Timer
-let tDur = 30, tRem = 30, tRunning = false, tIv = null;
+let tDur = 30, tRem = 30, tRunning = false, tIv = null, tAutoStart = null;
 const T_CIRC = 552.92;
 const repState = {}; // key: "d-i" → current set number
 let timerExCtx = null; // {key, sets} of current exercise
@@ -580,7 +593,7 @@ function markExDone(d, i) {
   }
   updateRing(d);
   renderTabs();
-  if (!wasAll && doneMap[d].size === DAYS[d].exercises.length) setTimeout(showCeleb, 400);
+  if (!wasAll && doneMap[d].size === DAYS[d].exercises.length) setTimeout(()=>showCeleb(d), 400);
 }
 
 function toggle(d, i) {
@@ -598,7 +611,7 @@ function toggle(d, i) {
   renderDay(d);
   updateRing(d);
   renderTabs();
-  if (!wasAll && s.size === DAYS[d].exercises.length) setTimeout(showCeleb, 400);
+  if (!wasAll && s.size === DAYS[d].exercises.length) setTimeout(()=>showCeleb(d), 400);
 }
 
 function switchDay(d) {
@@ -610,7 +623,13 @@ function switchDay(d) {
 }
 
 function resetDay(d) {
-  if (!confirm(`¿Reiniciar el progreso de ${DAYS[d].name}? Se borrarán las series y ejercicios completados.`)) return;
+  showConfirm(
+    `¿Reiniciar ${DAYS[d].name}?`,
+    'Se borrarán las series y ejercicios completados.',
+    () => _doResetDay(d)
+  );
+}
+function _doResetDay(d) {
   doneMap[d] = new Set();
   // Clear rep counters for this day
   DAYS[d].exercises.forEach((_, i) => delete repState[`${d}-${i}`]);
@@ -718,7 +737,8 @@ function openTimer(def, d, i, sets) {
   document.getElementById('tBtn').textContent = '▶ Iniciar';
   document.getElementById('timerOv').classList.add('open');
   if ('Notification' in window && Notification.permission==='default') Notification.requestPermission();
-  setTimeout(startTimer, 350);
+  clearTimeout(tAutoStart);
+  tAutoStart = setTimeout(startTimer, 350);
 }
 function closeTimer() {
   document.getElementById('timerOv').classList.remove('open');
@@ -759,6 +779,7 @@ function toggleTimer() { tRunning ? stopTimer() : startTimer(); }
 
 function startTimer() {
   if (tRem <= 0) tRem = tDur;
+  clearInterval(tIv); // evita intervalos duplicados si se llama dos veces
   tRunning = true;
   document.getElementById('tBtn').textContent = '⏸ Pausar';
   tIv = setInterval(()=>{ tRem--; updateTimerUI(); if(tRem<=0) finishTimer(); }, 1000);
@@ -799,9 +820,17 @@ function finishTimer() {
   sendNotif();
   try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch(e){}
 }
+let _audioCtx = null;
+function getAudioCtx() {
+  if (!_audioCtx || _audioCtx.state === 'closed') {
+    _audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  }
+  return _audioCtx;
+}
 function playBeep() {
   try {
-    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
     [0,.3,.6].forEach(delay=>{
       const o=ctx.createOscillator(), g=ctx.createGain();
       o.connect(g); g.connect(ctx.destination);
@@ -826,11 +855,12 @@ function sendNotif() {
 //  CELEBRATION
 // ══════════════════════════════════════════════════════
 let celebTimer = null;
-function showCeleb() {
-  const total = DAYS[activeDay].exercises.length;
+function showCeleb(d) {
+  const day = DAYS[d !== undefined ? d : activeDay];
+  const total = day.exercises.length;
   document.getElementById('celebStats').textContent = `${total} ejercicios completados 🎯`;
   document.getElementById('celebMsg').textContent =
-    `Completaste todos los ejercicios del ${DAYS[activeDay].name}. ¡Eres una crack! 🔥`;
+    `Completaste todos los ejercicios del ${day.name}. ¡Eres una crack! 🔥`;
   // Reiniciar animación del emoji (para que replay en celebraciones sucesivas)
   const em = document.querySelector('.celeb-em');
   em.style.animation = 'none';
@@ -985,6 +1015,22 @@ function renderWeightHist(key) {
       </span>
     </li>`;
   }).join('') + '</ul>';
+}
+
+// ══════════════════════════════════════════════════════
+//  CONFIRM MODAL
+// ══════════════════════════════════════════════════════
+let _confirmCb = null;
+function showConfirm(title, body, onOk) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmBody').textContent  = body;
+  _confirmCb = onOk;
+  document.getElementById('confirmOk').onclick = () => { closeConfirm(); onOk(); };
+  document.getElementById('confirmOv').classList.add('open');
+}
+function closeConfirm() {
+  document.getElementById('confirmOv').classList.remove('open');
+  _confirmCb = null;
 }
 
 // ══════════════════════════════════════════════════════
