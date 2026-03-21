@@ -3,6 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#e91e8c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Mi Rutina">
+  <link rel="manifest" href="manifest.json">
   <title>Mi Rutina 🌸</title>
   <style>
     :root {
@@ -215,6 +221,25 @@
     .set-dot.done { background: var(--pink); animation: dotPop .35s cubic-bezier(.34,1.56,.64,1) forwards; }
     @keyframes dotPop { 0% { transform: scale(0); background: var(--border); } 65% { transform: scale(1.45); } 100% { transform: scale(1.15); background: var(--pink); } }
 
+    /* ─── FLASH ÚLTIMA SERIE ─── */
+    @keyframes exFlash {
+      0%   { background: #e8f5e9; transform: scale(1.015); box-shadow: 0 0 0 3px rgba(67,160,71,.4); }
+      60%  { background: #f1f8e9; transform: scale(1.005); box-shadow: 0 0 0 6px rgba(67,160,71,.15); }
+      100% { background: var(--card); transform: scale(1); box-shadow: var(--sh); }
+    }
+    .ex-card-flash { animation: exFlash .65s cubic-bezier(.22,1,.36,1) forwards; }
+
+    /* ─── RACHA ─── */
+    .streak-badge { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px;
+                    background: rgba(255,255,255,.22); color: #fff; border-radius: 20px;
+                    padding: 2px 10px; font-size: 12px; font-weight: 700; }
+
+    /* ─── RESUMEN CELEBRACIÓN ─── */
+    .celeb-summary { display: flex; gap: 8px; justify-content: center; margin: 10px 0 14px; }
+    .cs-item { flex: 1; background: var(--pink-light); border-radius: 14px; padding: 10px 6px; text-align: center; }
+    .cs-val  { display: block; font-size: 20px; font-weight: 800; color: var(--pink); line-height: 1.2; }
+    .cs-lbl  { display: block; font-size: 10px; color: var(--muted); font-weight: 600; margin-top: 2px; text-transform: uppercase; letter-spacing: .5px; }
+
     /* ─── TOAST ─── */
     .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
              background: #1a1a2e; color: #fff; padding: 10px 20px; border-radius: 20px;
@@ -254,6 +279,7 @@
     <div class="hd-text">
       <h1>🌸 Mi Rutina</h1>
       <p id="hdSub">Mujer · 5 días · Pérdida de grasa · Post-menisco</p>
+      <div class="streak-badge" id="streakBadge" style="display:none">🔥 <span id="streakNum">0</span> días seguidos</div>
     </div>
     <div class="ring-wrap">
       <svg class="ring-svg" width="58" height="58" viewBox="0 0 58 58">
@@ -369,6 +395,7 @@
     <span class="celeb-em">🏆</span>
     <p class="celeb-title">¡Día completado!</p>
     <p class="celeb-stats" id="celebStats">0 ejercicios</p>
+    <div class="celeb-summary" id="celebSummary"></div>
     <p class="celeb-msg" id="celebMsg">¡Increíble trabajo!</p>
     <div class="celeb-progress"><div class="celeb-progress-bar" id="celebBar"></div></div>
     <button class="celeb-close" onclick="closeCeleb()">¡Gracias! 💪</button>
@@ -462,6 +489,32 @@ const DAYS = [
 // ══════════════════════════════════════════════════════
 let activeDay = 0;
 let doneMap   = {};   // { dayIdx: Set<exIdx> }
+
+// ── RACHA ──
+let streak = { count: 0, lastDate: null };
+function loadStreak() {
+  try { const s = localStorage.getItem('fba_streak_v1'); if (s) streak = JSON.parse(s); } catch(e) {}
+}
+function saveStreak() { localStorage.setItem('fba_streak_v1', JSON.stringify(streak)); }
+function updateStreak() {
+  const today = new Date().toISOString().slice(0, 10);
+  if (streak.lastDate === today) { renderStreak(); return; }
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  streak.count = (streak.lastDate === yesterday) ? streak.count + 1 : 1;
+  streak.lastDate = today;
+  saveStreak();
+  renderStreak();
+}
+function renderStreak() {
+  const badge = document.getElementById('streakBadge');
+  if (!badge) return;
+  if (streak.count >= 2) {
+    document.getElementById('streakNum').textContent = streak.count;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+}
 
 // Timer
 let tDur = 30, tRem = 30, tRunning = false, tIv = null, tAutoStart = null;
@@ -587,7 +640,8 @@ function markExDone(d, i) {
   saveState();
   const card = document.getElementById(`c${d}_${i}`);
   if (card) {
-    card.classList.add('done');
+    card.classList.add('ex-card-flash');
+    setTimeout(() => { card.classList.remove('ex-card-flash'); card.classList.add('done'); }, 650);
     const check = card.querySelector('.ex-check');
     if (check) { check.classList.add('checked'); check.textContent = '✓'; }
   }
@@ -861,6 +915,18 @@ function showCeleb(d) {
   document.getElementById('celebStats').textContent = `${total} ejercicios completados 🎯`;
   document.getElementById('celebMsg').textContent =
     `Completaste todos los ejercicios del ${day.name}. ¡Eres una crack! 🔥`;
+
+  // Resumen del día
+  const totalSets = day.exercises.reduce((acc, ex) => acc + ex.sets, 0);
+  const totalRestSec = day.exercises.reduce((acc, ex) => acc + ex.rest * (ex.sets - 1), 0);
+  const estMin = Math.round((totalSets * 35 + totalRestSec) / 60);
+  updateStreak();
+  const streakItem = streak.count >= 2
+    ? `<div class="cs-item"><span class="cs-val">🔥${streak.count}</span><span class="cs-lbl">días racha</span></div>` : '';
+  document.getElementById('celebSummary').innerHTML =
+    `<div class="cs-item"><span class="cs-val">${totalSets}</span><span class="cs-lbl">series</span></div>
+     <div class="cs-item"><span class="cs-val">~${estMin}</span><span class="cs-lbl">min entreno</span></div>
+     ${streakItem}`;
   // Reiniciar animación del emoji (para que replay en celebraciones sucesivas)
   const em = document.querySelector('.celeb-em');
   em.style.animation = 'none';
@@ -1038,9 +1104,16 @@ function closeConfirm() {
 // ══════════════════════════════════════════════════════
 loadState();
 loadWeights();
+loadStreak();
+renderStreak();
 renderTabs();
 renderDay(activeDay);
 updateRing(activeDay);
+
+// ── SERVICE WORKER (PWA offline) ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
 
 // ── WAKE LOCK: evita que la pantalla se apague mientras la app está abierta ──
 let wakeLock = null;
