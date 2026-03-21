@@ -995,7 +995,21 @@ loadWeights();
 renderTabs();
 renderDay(activeDay);
 updateRing(activeDay);
-// hdSub keeps its static text from HTML
+
+// ── WAKE LOCK: evita que la pantalla se apague mientras la app está abierta ──
+let wakeLock = null;
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch(e) {}
+}
+// Reactivar si vuelves a la app (el wake lock se suelta al minimizar)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') requestWakeLock();
+});
+requestWakeLock();
 </script>
 </body>
 </html>
